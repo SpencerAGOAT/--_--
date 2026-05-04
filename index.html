@@ -663,19 +663,29 @@ body::after {
      it cuts a clean ring out of the avatar so the dot reads as separate. */
   box-shadow: 0 0 0 3px var(--shadow), 0 0 8px rgba(46,204,64,0.5);
   z-index: 2;
-  display: flex; align-items: center; justify-content: center;
+  /* Use this as a positioning context for inner cutout shapes */
+  overflow: hidden;
 }
-/* Away: a crescent moon — implemented as a smaller dark circle offset inside */
+.status-dot::before {
+  /* Default no cutout */
+  content: none;
+}
+/* Away: a crescent moon — dark circle nudged up-left so the visible orange
+   forms a crescent shape on the bottom-right side */
 .status-dot.away {
   background: #faa61a;
   box-shadow: 0 0 0 3px var(--shadow), 0 0 8px rgba(250,166,26,0.4);
 }
 .status-dot.away::before {
   content: '';
-  width: 12px; height: 12px;
+  position: absolute;
+  /* Big offset cutout — creates a thinner crescent that reads as a moon shape.
+     The cutout is the same dark color as the page background. */
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--shadow);
-  transform: translate(-3px, -2px);
+  top: -2px;
+  left: -2px;
 }
 /* Busy / Do Not Disturb: a horizontal stripe through the middle */
 .status-dot.busy {
@@ -684,21 +694,26 @@ body::after {
 }
 .status-dot.busy::before {
   content: '';
+  position: absolute;
   width: 12px; height: 4px;
   border-radius: 2px;
   background: var(--shadow);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
 }
 /* Hidden / Invisible: a hollow ring (gray with cutout) */
 .status-dot.hidden {
-  display: flex;
   background: #80848e;
   box-shadow: 0 0 0 3px var(--shadow);
 }
 .status-dot.hidden::before {
   content: '';
+  position: absolute;
   width: 10px; height: 10px;
   border-radius: 50%;
   background: var(--shadow);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .name-plate {
@@ -714,12 +729,12 @@ body::after {
   font-weight: 600;
 }
 .friend-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 13px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
   color: var(--gold);
-  margin-top: 4px;
-  letter-spacing: 1px;
+  margin-top: 6px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
   opacity: 0.7;
 }
 
@@ -1778,7 +1793,7 @@ body.is-admin .neon-sign .f-trigger:hover {
   font-family: 'Cinzel', serif;
   font-size: 11px;
   color: var(--gold);
-  letter-spacing: 6px;
+  letter-spacing: 3px;
   text-transform: uppercase;
   margin-top: 10px;
   opacity: 0.8;
@@ -2437,11 +2452,6 @@ body.is-admin .neon-sign .f-trigger:hover {
       <div class="section-label">Quick Links</div>
       <div class="socials-grid" id="pvSocials"></div>
     </div>
-    <div class="modal-section" id="pvNotesSection">
-      <div class="section-label">Notes from the Bar</div>
-      <div id="pvNotesList" class="napkin-list"></div>
-      <div id="pvNotesForm"></div>
-    </div>
     <div class="modal-actions" id="pvActions"></div>
   </div>
 </div>
@@ -2852,10 +2862,11 @@ body.is-admin .neon-sign .f-trigger:hover {
         <button class="btn btn-ghost btn-sm" data-action="add-social" style="margin-top:10px;"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Link</button>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="mmAdminRow">
         <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
           <input type="checkbox" id="mmIsAdmin"> Admin (can manage all members)
         </label>
+        <span class="help">Only the owner can change this.</span>
       </div>
     </div>
     <div class="modal-actions">
@@ -3648,6 +3659,56 @@ function attachCarouselListeners() {
     document.fonts.ready.then(updateCarouselButtons);
   }
   window.addEventListener('load', () => setTimeout(updateCarouselButtons, 100));
+  startCarouselShowcase();
+}
+
+// Auto-scroll: slowly drift the carousel sideways so it shows everyone,
+// then loop back to the start. Pauses on hover, touch, and user-initiated
+// scroll, then resumes after a brief idle period.
+let _showcaseRAF = null;
+let _showcaseDirection = 1;
+let _showcasePaused = false;
+let _showcaseUserScrollUntil = 0;
+
+function startCarouselShowcase() {
+  const grid = $('tables');
+  if (!grid) return;
+  // Pause when the visitor interacts
+  grid.addEventListener('mouseenter', () => { _showcasePaused = true; });
+  grid.addEventListener('mouseleave', () => { _showcasePaused = false; });
+  grid.addEventListener('touchstart', () => { _showcasePaused = true; }, { passive: true });
+  grid.addEventListener('touchend', () => {
+    // Resume after a longer pause on touch — gives the user time to read
+    setTimeout(() => { _showcasePaused = false; }, 2500);
+  }, { passive: true });
+  // Detect any user scroll (from arrow buttons or wheel/touchpad) and pause briefly
+  grid.addEventListener('wheel', () => { _showcaseUserScrollUntil = Date.now() + 1500; }, { passive: true });
+
+  let lastTs = 0;
+  const tick = (ts) => {
+    if (!lastTs) lastTs = ts;
+    const dt = ts - lastTs;
+    lastTs = ts;
+
+    if (!_showcasePaused && Date.now() > _showcaseUserScrollUntil &&
+        grid.scrollWidth > grid.clientWidth + 4) {
+      // ~20 pixels per second — slow showcase pace
+      const speed = 20 / 1000;
+      const next = grid.scrollLeft + _showcaseDirection * speed * dt;
+      const max = grid.scrollWidth - grid.clientWidth;
+      if (next >= max) {
+        grid.scrollLeft = max;
+        _showcaseDirection = -1;
+      } else if (next <= 0) {
+        grid.scrollLeft = 0;
+        _showcaseDirection = 1;
+      } else {
+        grid.scrollLeft = next;
+      }
+    }
+    _showcaseRAF = requestAnimationFrame(tick);
+  };
+  _showcaseRAF = requestAnimationFrame(tick);
 }
 
 // ============================================================
@@ -3711,8 +3772,10 @@ function renderMusicDock() {
     _dockProvider = 'youtube';
     const id = extractYouTubeId(url);
     if (!id) { dock.classList.remove('active'); return; }
-    // Use the YouTube IFrame API for full play/pause/mute control
-    host.innerHTML = `<iframe id="dockYTFrame" src="https://www.youtube.com/embed/${id}?enablejsapi=1&playlist=${id}&loop=1&autoplay=0&controls=0&modestbranding=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
+    // Use the YouTube IFrame API. Start muted so browser autoplay rules allow it
+    // to begin playing on its own. Visitor unmutes with the volume button.
+    host.innerHTML = `<iframe id="dockYTFrame" src="https://www.youtube.com/embed/${id}?enablejsapi=1&playlist=${id}&loop=1&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
+    _dockIsMuted = true; // Reflect the mute=1 we passed to the iframe
     // Ensure the YT API script is loaded once
     if (!window.YT || !window.YT.Player) {
       if (!document.getElementById('ytApiScript')) {
@@ -3729,7 +3792,7 @@ function renderMusicDock() {
     _dockProvider = 'soundcloud';
     let scUrl = url;
     if (!url.includes('w.soundcloud.com/player')) {
-      scUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23c41e1e&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`;
+      scUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23c41e1e&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`;
     }
     host.innerHTML = `<iframe id="dockSCFrame" src="${escapeAttr(scUrl)}" allow="autoplay" frameborder="no"></iframe>`;
   } else {
@@ -3739,7 +3802,16 @@ function renderMusicDock() {
   }
 
   dock.classList.add('active');
-  dock.classList.add('paused'); // Start paused; visitor must click play (browser autoplay rules)
+  // Optimistically show as "playing" — autoplay should kick in immediately for YT
+  // (since muted) and SoundCloud (since auto_play=true). The state listener
+  // corrects this if autoplay is blocked.
+  _dockIsPlaying = true;
+  dock.classList.remove('paused');
+  // Reflect mute state in the volume icon
+  const muteBtn = $('dockMuteBtn');
+  if (muteBtn) {
+    muteBtn.innerHTML = `<svg class="icon"><use href="#${_dockIsMuted ? 'i-volume-mute' : 'i-volume'}"/></svg>`;
+  }
   updateDockPlayButton();
 }
 
@@ -3968,9 +4040,6 @@ function openProfileView(username) {
     ).join('');
     ssec.style.display = '';
   } else { ssec.style.display = 'none'; }
-
-  // Load notes for this profile
-  loadAndRenderNotes(username);
 
   let html = '';
   if (CURRENT_USER && CURRENT_USER.username === username) {
@@ -4860,6 +4929,12 @@ function openAddMember() {
   $('mmFile').value = '';
   $('mmBannerFile').value = '';
   $('mmIsAdmin').checked = false;
+  // Only the owner ('empathy') can change the admin status of others.
+  // Hide the row entirely for other admins so it's not even tempting.
+  const adminRow = $('mmAdminRow');
+  if (adminRow) {
+    adminRow.style.display = (CURRENT_USER && CURRENT_USER.username === 'empathy') ? '' : 'none';
+  }
   setStatusPills('online');
   renderSocialsEditor([]);
   renderDrinkPicker('mmDrinkPicker', '', 'mm');
@@ -4891,6 +4966,14 @@ function openEditMember(username) {
   $('mmFile').value = '';
   $('mmBannerFile').value = '';
   $('mmIsAdmin').checked = !!f.is_admin;
+  // Only the owner can change admin status. Disable & hide for everyone else,
+  // and refuse to let empathy demote themselves.
+  const adminRowE = $('mmAdminRow');
+  if (adminRowE) {
+    const canEditAdmin = (CURRENT_USER && CURRENT_USER.username === 'empathy' && f.username !== 'empathy');
+    adminRowE.style.display = canEditAdmin ? '' : 'none';
+    $('mmIsAdmin').disabled = !canEditAdmin;
+  }
   setStatusPills(f.status || 'online');
   renderSocialsEditor(Array.isArray(f.socials) ? f.socials : []);
   renderDrinkPicker('mmDrinkPicker', _pendingDrinkMm, 'mm');
@@ -5193,10 +5276,28 @@ async function init() {
   if (ALL_FRIENDS.length > 0) {
     await checkSession();
   }
-  // Bump last_seen for the logged-in user (fire-and-forget)
+  // Bump last_seen for the logged-in user (fire-and-forget). Repeat every
+  // 2 minutes while the page is open so the value stays fresh while a member
+  // is browsing. Also refresh on tab visibility (when they re-focus the tab).
   if (CURRENT_USER && CURRENT_USER.token) {
-    try { rpc('touch_session', { p_token: CURRENT_USER.token }); } catch {}
+    const touch = () => {
+      if (!CURRENT_USER || !CURRENT_USER.token) return;
+      try { rpc('touch_session', { p_token: CURRENT_USER.token }); } catch {}
+    };
+    touch();
+    setInterval(touch, 2 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) touch();
+    });
   }
+  // Refresh members data every 60 seconds so OTHER members' last-seen and
+  // online statuses update without a page reload.
+  setInterval(async () => {
+    try {
+      await loadAllFriends();
+      renderTables();
+    } catch {}
+  }, 60 * 1000);
   // Don't auto-open the setup modal — the pulsing keyhole will guide first-time setup
   renderAuthBar();
   // Load admin-controlled recommendation before rendering so the card shows on first paint
