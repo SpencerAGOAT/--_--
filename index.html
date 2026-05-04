@@ -540,27 +540,30 @@ body::after {
 .carousel-wrap {
   position: relative;
   margin-top: 40px;
-  padding: 0 60px;
 }
 .tables-grid {
+  /* The visible window — clips the long inner track. */
+  position: relative;
+  overflow: hidden;
+  padding: 30px 0;
+  /* Soft fade at the edges so cards drift in/out gently rather than popping */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+.tables-track {
+  /* The actual scrolling row. Cards are flexed inline; we translate this
+     element left over time. Width is intrinsic (sum of children). */
   display: flex;
   gap: 40px;
-  overflow-x: auto;
-  overflow-y: visible;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  padding: 30px 10px 30px;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE */
+  width: max-content;
+  /* will-change tells the browser to optimize for the upcoming transform changes */
+  will-change: transform;
 }
-.tables-grid::-webkit-scrollbar { display: none; }
-.tables-grid > .table {
+.tables-track > .table {
   flex: 0 0 220px;
-  scroll-snap-align: center;
 }
 /* Empty / single-card / fallback cases — center the row */
-.tables-grid:has(.empty-bar) { justify-content: center; }
-.empty-bar { flex: 0 0 auto; }
+.empty-bar { display: block; text-align: center; padding: 60px 20px; }
 
 .carousel-btn {
   position: absolute;
@@ -601,9 +604,9 @@ body::after {
 .carousel-btn .icon { width: 18px; height: 18px; }
 
 @media (max-width: 600px) {
-  .carousel-wrap { padding: 0 50px; }
+  .carousel-wrap { padding: 0; }
   .carousel-btn { width: 36px; height: 36px; }
-  .tables-grid > .table { flex: 0 0 180px; }
+  .tables-track > .table { flex: 0 0 180px; }
 }
 .table {
   position: relative;
@@ -2416,9 +2419,7 @@ body.is-admin .neon-sign .f-trigger:hover {
     <div class="stage-platform" id="stagePlatform"></div>
   </section>
   <div class="carousel-wrap">
-    <button class="carousel-btn left" id="carouselLeft" data-action="carousel-left" aria-label="Previous"><svg class="icon"><use href="#i-chevron-left"/></svg></button>
     <div class="tables-grid" id="tables"></div>
-    <button class="carousel-btn right" id="carouselRight" data-action="carousel-right" aria-label="Next"><svg class="icon"><use href="#i-chevron-right"/></svg></button>
   </div>
 </main>
 
@@ -3581,32 +3582,47 @@ function renderTables() {
     stagePlat.innerHTML = '';
   }
 
-  grid.innerHTML = regular.length ? regular.map(f => {
-    const isMe = CURRENT_USER && CURRENT_USER.username === f.username;
-    const ghost = isGhost(f);
-    const classes = ['table'];
-    if (isMe) classes.push('is-me');
-    if (ghost) classes.push('is-ghost');
-    return `
-      <div class="${classes.join(' ')}" data-action="view-profile" data-username="${escapeAttr(f.username)}">
-        <div class="friend-avatar-wrap">
-          <div class="friend-avatar">${avatarHtml(f)}</div>
-          <div class="status-dot ${escapeAttr(f.status || 'online')}"></div>
-        </div>
-        <div class="table-surface"></div>
-        <div class="name-plate">
-          <div class="friend-name">${escapeHtml(f.username)}</div>
-          <div class="friend-title">${escapeHtml(f.display_title || '')}</div>
-        </div>
-      </div>`;
-  }).join('') : (visible.length === 0 && ALL_FRIENDS.length === 0
-    ? `<div class="empty-bar">The bar is empty tonight.<br><span>An owner will arrive shortly to open the doors.</span></div>`
-    : '');
+  if (regular.length) {
+    const cards = regular.map(f => {
+      const isMe = CURRENT_USER && CURRENT_USER.username === f.username;
+      const ghost = isGhost(f);
+      const classes = ['table'];
+      if (isMe) classes.push('is-me');
+      if (ghost) classes.push('is-ghost');
+      return `
+        <div class="${classes.join(' ')}" data-action="view-profile" data-username="${escapeAttr(f.username)}">
+          <div class="friend-avatar-wrap">
+            <div class="friend-avatar">${avatarHtml(f)}</div>
+            <div class="status-dot ${escapeAttr(f.status || 'online')}"></div>
+          </div>
+          <div class="table-surface"></div>
+          <div class="name-plate">
+            <div class="friend-name">${escapeHtml(f.username)}</div>
+            <div class="friend-title">${escapeHtml(f.display_title || '')}</div>
+          </div>
+        </div>`;
+    }).join('');
+    // Render the cards twice inside .tables-track so that as the track scrolls
+    // left, the duplicate set comes into view seamlessly. When the track has
+    // shifted by exactly the width of one set, we wrap back to 0 invisibly.
+    grid.innerHTML = `<div class="tables-track">${cards}${cards}</div>`;
+    // Measure the width of the original (un-duplicated) set so the marquee
+    // knows where to wrap. We do this after the layout has settled.
+    const track = grid.querySelector('.tables-track');
+    requestAnimationFrame(() => {
+      // Total width / 2 = width of one set. Add the gap so the wrap happens
+      // exactly one card-gap into the duplicate set, hiding the seam.
+      const fullWidth = track.scrollWidth;
+      track.dataset.halfWidth = String(fullWidth / 2);
+      startMarquee();
+    });
+  } else if (visible.length === 0 && ALL_FRIENDS.length === 0) {
+    grid.innerHTML = `<div class="empty-bar">The bar is empty tonight.<br><span>An owner will arrive shortly to open the doors.</span></div>`;
+  } else {
+    grid.innerHTML = '';
+  }
 
   renderBartenderRec();
-  attachCarouselListeners();
-  // Wait for layout, then update button state
-  setTimeout(updateCarouselButtons, 50);
 }
 
 // ============================================================
@@ -3616,73 +3632,32 @@ function renderTables() {
 // Random pick that excludes ghosts. Stable for ~10 minutes per visitor so it doesn't
 // flicker on every action; new pick each visit.
 // ============================================================
-// CAROUSEL (members horizontal scroll)
+// MARQUEE (members slowly auto-scroll, looping forever)
 // ============================================================
-function scrollCarousel(direction) {
-  const grid = $('tables');
-  if (!grid) return;
-  // Scroll by roughly two card-widths so the user moves a meaningful chunk
-  const cardStep = 260;
-  grid.scrollBy({ left: direction * cardStep * 2, behavior: 'smooth' });
-}
+// The track is the inner element that holds all cards (rendered by
+// renderTables). We translate it leftward over time. When it has scrolled
+// past the width of the original (un-duplicated) set of cards, we jump back
+// to 0 — and because the track contains a duplicate set of cards, the jump
+// is visually invisible.
+let _marqueeRAF = null;
+let _marqueePaused = false;
+let _marqueeOffset = 0;
 
-function updateCarouselButtons() {
+function startMarquee() {
   const grid = $('tables');
-  const left = $('carouselLeft');
-  const right = $('carouselRight');
-  if (!grid || !left || !right) return;
-  // If there are no children at all (empty bar), hide buttons
-  if (grid.children.length === 0 || grid.querySelector('.empty-bar')) {
-    left.style.display = 'none';
-    right.style.display = 'none';
-    return;
-  }
-  const overflows = grid.scrollWidth > grid.clientWidth + 4;
-  left.style.display = overflows ? '' : 'none';
-  right.style.display = overflows ? '' : 'none';
-  if (!overflows) return;
-  // Disable left/right at the ends
-  const atStart = grid.scrollLeft <= 4;
-  const atEnd = grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 4;
-  left.disabled = atStart;
-  right.disabled = atEnd;
-}
+  const track = grid && grid.querySelector('.tables-track');
+  if (!grid || !track) return;
 
-function attachCarouselListeners() {
-  const grid = $('tables');
-  if (!grid || grid.dataset.carouselWired) return;
-  grid.dataset.carouselWired = '1';
-  grid.addEventListener('scroll', updateCarouselButtons, { passive: true });
-  window.addEventListener('resize', updateCarouselButtons);
-  // Also update buttons when fonts/images finish loading (which can change widths)
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(updateCarouselButtons);
-  }
-  window.addEventListener('load', () => setTimeout(updateCarouselButtons, 100));
-  startCarouselShowcase();
-}
+  // Cancel any previous loop (in case renderTables re-runs)
+  if (_marqueeRAF) cancelAnimationFrame(_marqueeRAF);
+  _marqueeOffset = 0;
+  track.style.transform = 'translateX(0px)';
 
-// Auto-scroll: slowly drift the carousel sideways so it shows everyone,
-// then loop back to the start. Pauses on hover, touch, and user-initiated
-// scroll, then resumes after a brief idle period.
-let _showcaseRAF = null;
-let _showcaseDirection = 1;
-let _showcasePaused = false;
-let _showcaseUserScrollUntil = 0;
-
-function startCarouselShowcase() {
-  const grid = $('tables');
-  if (!grid) return;
-  // Pause when the visitor interacts
-  grid.addEventListener('mouseenter', () => { _showcasePaused = true; });
-  grid.addEventListener('mouseleave', () => { _showcasePaused = false; });
-  grid.addEventListener('touchstart', () => { _showcasePaused = true; }, { passive: true });
-  grid.addEventListener('touchend', () => {
-    // Resume after a longer pause on touch — gives the user time to read
-    setTimeout(() => { _showcasePaused = false; }, 2500);
-  }, { passive: true });
-  // Detect any user scroll (from arrow buttons or wheel/touchpad) and pause briefly
-  grid.addEventListener('wheel', () => { _showcaseUserScrollUntil = Date.now() + 1500; }, { passive: true });
+  // Pause on hover/touch so people can read names / click
+  grid.onmouseenter = () => { _marqueePaused = true; };
+  grid.onmouseleave = () => { _marqueePaused = false; };
+  grid.ontouchstart = () => { _marqueePaused = true; };
+  grid.ontouchend = () => { setTimeout(() => { _marqueePaused = false; }, 2000); };
 
   let lastTs = 0;
   const tick = (ts) => {
@@ -3690,25 +3665,23 @@ function startCarouselShowcase() {
     const dt = ts - lastTs;
     lastTs = ts;
 
-    if (!_showcasePaused && Date.now() > _showcaseUserScrollUntil &&
-        grid.scrollWidth > grid.clientWidth + 4) {
-      // ~20 pixels per second — slow showcase pace
-      const speed = 20 / 1000;
-      const next = grid.scrollLeft + _showcaseDirection * speed * dt;
-      const max = grid.scrollWidth - grid.clientWidth;
-      if (next >= max) {
-        grid.scrollLeft = max;
-        _showcaseDirection = -1;
-      } else if (next <= 0) {
-        grid.scrollLeft = 0;
-        _showcaseDirection = 1;
-      } else {
-        grid.scrollLeft = next;
+    if (!_marqueePaused) {
+      // ~25 pixels per second — slow showcase pace
+      const speed = 25 / 1000;
+      _marqueeOffset += speed * dt;
+
+      // The track contains [originalCards, duplicateCards]. We measure the
+      // width of the original set by reading the data attribute we set in
+      // renderTables. When we've translated past that, we wrap.
+      const halfWidth = parseFloat(track.dataset.halfWidth || '0');
+      if (halfWidth > 0 && _marqueeOffset >= halfWidth) {
+        _marqueeOffset -= halfWidth;
       }
+      track.style.transform = `translateX(${-_marqueeOffset}px)`;
     }
-    _showcaseRAF = requestAnimationFrame(tick);
+    _marqueeRAF = requestAnimationFrame(tick);
   };
-  _showcaseRAF = requestAnimationFrame(tick);
+  _marqueeRAF = requestAnimationFrame(tick);
 }
 
 // ============================================================
@@ -5126,8 +5099,6 @@ document.addEventListener('click', (ev) => {
   switch (action) {
     case 'close-modal': closeAllModals(); break;
     case 'view-profile': openProfileView(username); break;
-    case 'carousel-left': scrollCarousel(-1); break;
-    case 'carousel-right': scrollCarousel(1); break;
     case 'open-login': openModal('loginModal'); break;
     case 'staff-door': openStaffEntrance(); break;
     case 'do-login': doLogin(); break;
