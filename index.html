@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FANGTASIA</title>
+<!-- Build version is regenerated on every commit. The auto-update check in JS
+     fetches the live HTML periodically and compares this value; mismatch
+     triggers a soft prompt to reload. Bump this string on every deploy
+     (or replace it in your build pipeline). -->
+<meta name="build-version" content="2026-05-04-1">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -509,6 +514,18 @@ body::after {
   border: none;
   flex: 1;
 }
+/* Invisible overlay covering the iframe for non-hosts. Captures all clicks,
+   touches, and wheels so the listener can't pause, scrub, or interact with
+   the player. Has cursor:not-allowed on hover to communicate the lock-out. */
+.party-input-block {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  z-index: 5;
+  cursor: not-allowed;
+  /* Allow chat input and host controls behind us if they were placed here,
+     but everything inside the iframe is blocked. */
+}
 .party-stage-empty {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -653,6 +670,155 @@ body::after {
   max-width: 400px;
 }
 .party-start-form .form-row { width: 100%; max-width: 400px; }
+
+/* ===== Party Menu (directory of all active rooms) ===== */
+.party-menu {
+  width: min(560px, 96vw);
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, rgba(22,5,5,0.96) 0%, rgba(10,2,2,0.98) 100%);
+  border: 1px solid rgba(212,165,116,0.3);
+  border-radius: 2px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(196,30,30,0.2);
+  overflow: hidden;
+}
+.party-menu-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(212,165,116,0.2);
+}
+.party-menu-header h2 {
+  font-family: 'UnifrakturCook', cursive;
+  font-size: 28px;
+  color: var(--bone);
+  font-weight: 700;
+}
+.party-menu-header .modal-close {
+  position: static;
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.3);
+  color: rgba(212,165,116,0.7);
+  width: 32px; height: 32px;
+}
+.party-menu-body {
+  overflow-y: auto;
+  padding: 12px 0;
+}
+.party-menu-section {
+  padding: 8px 24px 16px;
+}
+.party-menu-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.6);
+  padding: 12px 0 8px;
+  border-bottom: 1px solid rgba(139,0,0,0.15);
+  margin-bottom: 12px;
+}
+.party-menu-help {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: rgba(232,212,184,0.6);
+  padding: 8px 4px;
+}
+
+.party-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  background: rgba(40,8,8,0.4);
+  border: 1px solid rgba(139,0,0,0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+.party-row:hover {
+  background: rgba(60,12,12,0.6);
+  border-color: var(--blood-bright);
+  box-shadow: 0 4px 14px rgba(196,30,30,0.25);
+  transform: translateY(-1px);
+}
+.party-row.hosting {
+  border-color: rgba(212,165,116,0.5);
+  background: linear-gradient(180deg, rgba(60,30,8,0.4) 0%, rgba(30,15,4,0.6) 100%);
+}
+.party-row.hosting:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 14px rgba(212,165,116,0.3);
+}
+
+.party-row-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--velvet);
+  border: 1px solid rgba(196,30,30,0.4);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.party-row-icon .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--blood-bright);
+  box-shadow: 0 0 6px rgba(196,30,30,0.6);
+  animation: dockPulse 1.5s ease-in-out infinite;
+}
+.party-row.hosting .party-row-icon { border-color: var(--gold); }
+.party-row.hosting .party-row-icon .dot {
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(212,165,116,0.6);
+}
+.party-row-text { flex: 1; min-width: 0; }
+.party-row-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--bone);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.party-row-meta {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(232,212,184,0.55);
+  margin-top: 2px;
+}
+.party-row-cta {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 6px 12px;
+  border: 1px solid rgba(212,165,116,0.4);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.party-row:hover .party-row-cta {
+  color: #fff;
+  background: var(--blood);
+  border-color: var(--blood-bright);
+}
+
+/* The party-modal-content style was previously embedded directly on the
+   modal-overlay's child. Now we render it ourselves inside #partyContent so
+   we control the structure per-state (menu vs in-room). The partyContent has
+   no fixed dimensions — its child decides. */
+#partyContent {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  overflow: visible;
+}
 
 /* ============ AMBIENT MUSIC DOCK ============ */
 /* Small floating player pinned to bottom-left. Admin sets the URL from the
@@ -2866,9 +3032,7 @@ body.is-admin .neon-sign .f-trigger:hover {
 <!-- MODAL: Listening Party                                       -->
 <!-- ========================================================== -->
 <div class="modal-overlay" id="partyModal" data-onbg="leave-party">
-  <div class="modal-content party-modal-content" id="partyContent">
-    <!-- Content rendered dynamically based on whether a party is active. -->
-  </div>
+  <div id="partyContent"><!-- Built by JS based on state (menu vs in-room) --></div>
 </div>
 
 <!-- Discreet staff entrance trigger - bottom right corner -->
@@ -4150,127 +4314,237 @@ function renderTables() {
 // Random pick that excludes ghosts. Stable for ~10 minutes per visitor so it doesn't
 // flicker on every action; new pick each visit.
 // ============================================================
-// LISTENING PARTY (synced playback for everyone in the room)
+// LISTENING PARTY — multi-room
 // ============================================================
-// Architecture:
-// - One global party at a time (single-row table)
-// - Host's player publishes state changes to DB; clients subscribe via
-//   Supabase Realtime + poll every 2s as fallback
-// - On state update, non-host players seek to the live position and play/pause
-// - Drift correction every 5s while playing: if local player is more than
-//   1.5s off from the expected position, seek to correct it
+// Each member can host their own room (one per host). Anyone can join
+// any room. The "owner's room" (host = 'empathy') gets the homepage
+// banner; all other rooms appear in the party directory menu.
+//
+// Sync model is identical to before: host broadcasts play/pause/position
+// to the listening_party row; non-host clients receive realtime updates
+// and re-sync via seekTo. Hard-sync overlay blocks all input on non-host
+// players. Drift check every 500ms with 0.5s tolerance.
 // ============================================================
-let CURRENT_PARTY = null; // {host, url, state, title, position_seconds, live_position}
+let CURRENT_PARTY = null;       // The room you're currently in (or null)
+let ALL_PARTIES = [];           // Directory of all active rooms (for menu/banner)
 let _partyYTPlayer = null;
-let _partyProvider = null; // 'youtube' or 'soundcloud'
-let _partyChannel = null;  // Supabase realtime channel
+let _partyProvider = null;
+let _partyChannel = null;
+let _partyDirectoryChannel = null;
 let _partyPollTimer = null;
+let _partyChatPollTimer = null;
 let _partyHeartbeatTimer = null;
 let _partyDriftTimer = null;
+let _partyDirectoryTimer = null;
 let _partyMessages = [];
 let _partyAttendees = [];
-let _partyLastFetchedAt = 0;
 let _partyLocalPlaying = false;
-let _partyApplyingRemote = false; // suppress sending updates while applying remote state
+let _partyApplyingRemote = false;
 
-async function loadParty() {
+// Identify the "owner's party" — the one we surface on the homepage banner
+function findOwnerParty() {
+  return ALL_PARTIES.find(p => p.host === 'empathy') || null;
+}
+
+async function loadActiveParties() {
   try {
-    const rows = await rpc('get_listening_party');
-    CURRENT_PARTY = (rows && rows[0]) || null;
-    if (CURRENT_PARTY && CURRENT_PARTY.state === 'idle') CURRENT_PARTY = null;
-    _partyLastFetchedAt = Date.now();
+    ALL_PARTIES = (await rpc('get_active_parties')) || [];
   } catch {
-    CURRENT_PARTY = null;
+    ALL_PARTIES = [];
   }
 }
 
-function isPartyActive() {
-  return CURRENT_PARTY && CURRENT_PARTY.host && CURRENT_PARTY.url;
+async function loadPartyById(id) {
+  try {
+    const rows = await rpc('get_party_by_id', { p_id: id });
+    return (rows && rows[0]) || null;
+  } catch {
+    return null;
+  }
 }
 
+function isInPartyRoom() { return !!CURRENT_PARTY; }
 function isPartyHost() {
-  return isPartyActive() && CURRENT_USER && CURRENT_PARTY.host === CURRENT_USER.username;
+  return isInPartyRoom() && CURRENT_USER && CURRENT_PARTY.host === CURRENT_USER.username;
 }
 
-// The auth bar's "Listening Party" badge — appears when a party is active
+// =================================================================
+// HOMEPAGE BANNER (only shows the OWNER's party — host = empathy)
+// =================================================================
 function renderPartyBadge() {
   const bar = $('authBar');
   const banner = $('partyBanner');
+  const owner = findOwnerParty();
 
-  // Toggle the homepage banner so all visitors (logged in or not) see the party
   if (banner) {
-    if (isPartyActive()) {
+    if (owner) {
       banner.style.display = '';
+      banner.dataset.partyId = owner.id;
       const title = $('partyBannerTitle');
       const meta = $('partyBannerMeta');
-      if (title) title.textContent = CURRENT_PARTY.title || 'Listening Party';
-      if (meta) meta.textContent = `hosted by ${CURRENT_PARTY.host}`;
+      if (title) title.textContent = owner.title || 'Listening Party';
+      if (meta) meta.textContent = `hosted by ${owner.host}`;
     } else {
       banner.style.display = 'none';
+      delete banner.dataset.partyId;
     }
   }
 
-  // Auth-bar badge (small, only logged-in members see it)
+  // Auth-bar badge: shows when ANY party is active and the user is logged in.
+  // Clicking opens the party menu (so they can pick which room to join).
   if (!bar) return;
   const existing = bar.querySelector('.party-badge');
   if (existing) existing.remove();
-  if (!isPartyActive() || !CURRENT_USER) return;
+  if (!CURRENT_USER) return;
+  if (ALL_PARTIES.length === 0) return;
   const badge = document.createElement('button');
   badge.className = 'party-badge';
-  badge.dataset.action = 'open-party';
-  badge.innerHTML = `<span class="pulse-dot"></span> ${escapeHtml(CURRENT_PARTY.title || 'Listening Party')}`;
+  badge.dataset.action = 'open-party-menu';
+  const label = ALL_PARTIES.length === 1
+    ? (ALL_PARTIES[0].title || 'Listening Party')
+    : `${ALL_PARTIES.length} parties`;
+  badge.innerHTML = `<span class="pulse-dot"></span> ${escapeHtml(label)}`;
   bar.insertBefore(badge, bar.firstChild);
 }
 
-// Open the party modal — three states: no party (start form), active (player + chat), not logged in
-async function openPartyModal() {
-  await loadParty();
+// =================================================================
+// PARTY MENU (directory of all active rooms + start-your-own)
+// =================================================================
+async function openPartyMenu() {
+  if (!CURRENT_USER) {
+    openModal('loginModal');
+    return;
+  }
+  await loadActiveParties();
   const content = $('partyContent');
   if (!content) return;
 
-  if (!CURRENT_USER) {
-    content.innerHTML = `
-      <div class="party-start-form">
-        <h2>Listening Party</h2>
-        <p class="desc">Sign in to join the party.</p>
-        <button class="btn btn-primary" data-action="show-login">Sign In</button>
+  const myParty = ALL_PARTIES.find(p => p.host === CURRENT_USER.username);
+  const otherParties = ALL_PARTIES.filter(p => p.host !== CURRENT_USER.username);
+
+  let html = `
+    <div class="party-menu">
+      <div class="party-menu-header">
+        <h2>Listening Parties</h2>
+        <button class="modal-close" data-action="close-modal" aria-label="Close"><svg class="icon"><use href="#i-close"/></svg></button>
+      </div>
+      <div class="party-menu-body">`;
+
+  if (myParty) {
+    html += `
+      <div class="party-menu-section">
+        <div class="party-menu-label">Your Room</div>
+        <div class="party-row hosting" data-action="open-party" data-party-id="${myParty.id}">
+          <div class="party-row-icon"><span class="dot"></span></div>
+          <div class="party-row-text">
+            <div class="party-row-title">${escapeHtml(myParty.title || 'My Listening Party')}</div>
+            <div class="party-row-meta">You're hosting · ${myParty.attendee_count} listening</div>
+          </div>
+          <div class="party-row-cta">Open</div>
+        </div>
       </div>`;
-    openModal('partyModal');
-    return;
   }
 
-  if (!isPartyActive()) {
-    content.innerHTML = `
-      <div class="party-start-form">
-        <h2>Start a Listening Party</h2>
-        <p class="desc">Pick a YouTube or SoundCloud track. Everyone here will hear it together, in sync. You'll be the host — your play, pause, and seek control everyone else's player.</p>
-        <div class="form-row">
-          <label>Track URL</label>
-          <input type="text" class="form-input" id="partyStartUrl" placeholder="https://www.youtube.com/watch?v=...">
-        </div>
-        <div class="form-row">
-          <label>Party Name (optional)</label>
-          <input type="text" class="form-input" id="partyStartTitle" maxlength="100" placeholder="Saturday Mixtape">
-        </div>
-        <div style="display:flex; gap:10px; margin-top:8px;">
-          <button class="btn btn-ghost" data-action="leave-party">Cancel</button>
+  if (otherParties.length > 0) {
+    html += `
+      <div class="party-menu-section">
+        <div class="party-menu-label">${myParty ? 'Other Rooms' : 'Active Rooms'}</div>`;
+    otherParties.forEach(p => {
+      html += `
+        <div class="party-row" data-action="open-party" data-party-id="${p.id}">
+          <div class="party-row-icon"><span class="dot"></span></div>
+          <div class="party-row-text">
+            <div class="party-row-title">${escapeHtml(p.title || 'Listening Party')}</div>
+            <div class="party-row-meta">hosted by ${escapeHtml(p.host)} · ${p.attendee_count} listening</div>
+          </div>
+          <div class="party-row-cta">Join</div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!myParty) {
+    html += `
+      <div class="party-menu-section">
+        <div class="party-menu-label">Start Your Own</div>
+        <div class="party-start-form">
+          <div class="form-row">
+            <label>Track URL</label>
+            <input type="text" class="form-input" id="partyStartUrl" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+          <div class="form-row">
+            <label>Party Name (optional)</label>
+            <input type="text" class="form-input" id="partyStartTitle" maxlength="100" placeholder="Saturday Mixtape">
+          </div>
           <button class="btn btn-primary" data-action="start-party"><svg class="icon"><use href="#i-play"/></svg> Start Party</button>
         </div>
       </div>`;
-    openModal('partyModal');
-    return;
+  } else {
+    html += `
+      <div class="party-menu-section">
+        <div class="party-menu-help">
+          You're already hosting a room — open it above. To start a different one, end your current room first.
+        </div>
+      </div>`;
   }
 
-  // Active party — render full party UI
+  html += `</div></div>`;
+  content.innerHTML = html;
+  openModal('partyModal');
+  // Subscribe to directory updates so the list refreshes live
+  startPartyDirectoryRealtime();
+}
+
+function startPartyDirectoryRealtime() {
+  if (!_sb) return;
+  if (_partyDirectoryChannel) return;
+  _partyDirectoryChannel = _sb
+    .channel('party-directory')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'listening_party' },
+      async () => {
+        await loadActiveParties();
+        renderPartyBadge();
+        // If the menu is open, re-render it
+        if ($('partyModal').classList.contains('active') && !CURRENT_PARTY) {
+          openPartyMenu();
+        }
+      })
+    .subscribe();
+}
+
+function stopPartyDirectoryRealtime() {
+  if (_partyDirectoryChannel) {
+    try { _sb.removeChannel(_partyDirectoryChannel); } catch {}
+    _partyDirectoryChannel = null;
+  }
+}
+
+// =================================================================
+// JOINING / VIEWING A SPECIFIC ROOM
+// =================================================================
+async function openPartyById(partyId) {
+  if (!CURRENT_USER) {
+    openModal('loginModal');
+    return;
+  }
+  partyId = Number(partyId);
+  const party = await loadPartyById(partyId);
+  if (!party) {
+    alert('That party has ended.');
+    await loadActiveParties();
+    renderPartyBadge();
+    openPartyMenu();
+    return;
+  }
+  CURRENT_PARTY = party;
   renderPartyUI();
   openModal('partyModal');
-  // Mark this user as in attendance and start subscriptions
-  try { await rpc('join_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+  try { await rpc('join_listening_party', { p_token: CURRENT_USER.token, p_party_id: partyId }); } catch {}
   await loadPartyMessages();
   await loadPartyAttendees();
   startPartyRealtime();
   startPartyHeartbeat();
-  // Mute the ambient dock so we don't double-play music
   if (_dockYTPlayer && _dockYTPlayer.mute) _dockYTPlayer.mute();
 }
 
@@ -4279,41 +4553,41 @@ function renderPartyUI() {
   if (!content || !CURRENT_PARTY) return;
   const isHost = isPartyHost();
   content.innerHTML = `
-    <div class="party-header">
-      <div class="party-title">
-        ${escapeHtml(CURRENT_PARTY.title || 'Listening Party')}
-        <span class="host">hosted by ${escapeHtml(CURRENT_PARTY.host)}</span>
-      </div>
-      <div class="party-attendees" id="partyAttendees"></div>
-    </div>
-    <div class="party-body">
-      <div class="party-stage">
-        <div id="partyPlayer" style="flex:1; min-height:0; display:flex;"></div>
-        <div class="party-controls">
-          ${isHost ? '<span class="host-tag">Host</span>' : '<span class="sync-badge" id="partySyncBadge">Synced</span>'}
-          <span class="timecode" id="partyTimecode">0:00</span>
-          <span class="spacer"></span>
-          ${isHost ? `<button data-action="party-toggle-play" id="partyPlayBtn">Pause</button>
-                      <button class="danger" data-action="end-party">End Party</button>`
-                  : '<button data-action="leave-party">Leave</button>'}
+    <div class="party-modal-content">
+      <div class="party-header">
+        <div class="party-title">
+          ${escapeHtml(CURRENT_PARTY.title || 'Listening Party')}
+          <span class="host">hosted by ${escapeHtml(CURRENT_PARTY.host)}</span>
         </div>
+        <div class="party-attendees" id="partyAttendees"></div>
+        <button class="modal-close" data-action="leave-party" aria-label="Leave"><svg class="icon"><use href="#i-close"/></svg></button>
       </div>
-      <div class="party-chat">
-        <div class="party-chat-messages" id="partyChatMessages"></div>
-        <div class="party-chat-form">
-          <input type="text" id="partyChatInput" placeholder="Say something..." maxlength="500">
-          <button class="btn btn-primary btn-sm" data-action="post-party-message"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+      <div class="party-body">
+        <div class="party-stage">
+          <div id="partyPlayer" style="flex:1; min-height:0; display:flex;"></div>
+          <div class="party-controls">
+            ${isHost ? '<span class="host-tag">Host</span>' : '<span class="sync-badge" id="partySyncBadge">Synced</span>'}
+            <span class="timecode" id="partyTimecode">0:00</span>
+            <span class="spacer"></span>
+            ${isHost ? `<button data-action="party-toggle-play" id="partyPlayBtn">Pause</button>
+                        <button class="danger" data-action="end-party">End Party</button>`
+                    : '<button data-action="leave-party">Leave</button>'}
+          </div>
+        </div>
+        <div class="party-chat">
+          <div class="party-chat-messages" id="partyChatMessages"></div>
+          <div class="party-chat-form">
+            <input type="text" id="partyChatInput" placeholder="Say something..." maxlength="500">
+            <button class="btn btn-primary btn-sm" data-action="post-party-message"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+          </div>
         </div>
       </div>
     </div>`;
 
   buildPartyPlayer();
-  // Enter key submits chat
   const input = $('partyChatInput');
   if (input) {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') postPartyMessage();
-    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') postPartyMessage(); });
   }
 }
 
@@ -4323,14 +4597,35 @@ function buildPartyPlayer() {
   host.innerHTML = '';
   _partyYTPlayer = null;
 
+  // YouTube and SoundCloud both refuse to embed when the page is loaded from
+  // file:// (referrer is empty or null — they block as a security measure).
+  // Show a helpful note rather than a black/broken iframe.
+  if (window.location.protocol === 'file:') {
+    host.innerHTML = `
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; color:rgba(232,212,184,0.7); font-family:'Cormorant Garamond',serif; font-style:italic; gap:12px;">
+        <div style="font-family:'UnifrakturCook',cursive; font-size:32px; color:var(--bone); font-style:normal;">Local preview</div>
+        <div>YouTube and SoundCloud refuse to embed when the page is opened directly from your computer (file://).</div>
+        <div>To test the listening party locally, run a quick local web server. From the folder containing this file:</div>
+        <div style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; color:var(--gold); padding:10px 16px; border:1px solid rgba(212,165,116,0.3); border-radius:2px; background:rgba(0,0,0,0.4); user-select:all; cursor:text;">python3 -m http.server 8000</div>
+        <div>Then visit <span style="color:var(--blood-bright);">http://localhost:8000</span> in your browser.</div>
+        <div style="opacity:0.6; font-size:13px; margin-top:8px;">Everything else (chat, sync, attendees) still works locally — just not the video itself.</div>
+      </div>`;
+    return;
+  }
+
   const url = CURRENT_PARTY.url;
+  const amHost = isPartyHost();
+
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     _partyProvider = 'youtube';
     const id = extractYouTubeId(url);
     if (!id) return;
-    // Start position based on the live position from server
     const startSec = Math.max(0, Math.floor(CURRENT_PARTY.live_position || 0));
-    host.innerHTML = `<iframe id="partyYTFrame" style="width:100%;height:100%;border:none;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=0&controls=${isPartyHost() ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1" allow="autoplay; encrypted-media"></iframe>`;
+    host.innerHTML = `
+      <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
+        <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=0&controls=${amHost ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1&rel=0&fs=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>
+        ${amHost ? '' : '<div class="party-input-block" id="partyInputBlock" aria-hidden="true"></div>'}
+      </div>`;
     if (!window.YT || !window.YT.Player) {
       if (!document.getElementById('ytApiScript')) {
         const tag = document.createElement('script');
@@ -4348,8 +4643,11 @@ function buildPartyPlayer() {
     if (!url.includes('w.soundcloud.com/player')) {
       scUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23c41e1e&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&visual=true`;
     }
-    host.innerHTML = `<iframe id="partySCFrame" style="width:100%;height:100%;border:none;" src="${escapeAttr(scUrl)}" allow="autoplay"></iframe>`;
-    // SoundCloud sync is best-effort: we can postMessage seekTo/play/pause
+    host.innerHTML = `
+      <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
+        <iframe id="partySCFrame" style="width:100%; height:100%; border:none; display:block;" src="${escapeAttr(scUrl)}" allow="autoplay"></iframe>
+        ${amHost ? '' : '<div class="party-input-block" id="partyInputBlock" aria-hidden="true"></div>'}
+      </div>`;
     setTimeout(syncPartyToServer, 1500);
   }
 }
@@ -4360,32 +4658,37 @@ function initPartyYTPlayer() {
   _partyYTPlayer = new YT.Player(frame, {
     events: {
       onReady: () => {
-        // Apply current server state immediately
         syncPartyToServer();
         startPartyDriftCheck();
       },
       onStateChange: (e) => {
-        // Only the host broadcasts state changes
-        if (!isPartyHost() || _partyApplyingRemote) return;
-        if (e.data === YT.PlayerState.PLAYING) {
-          _partyLocalPlaying = true;
-          broadcastPartyState('playing');
-        } else if (e.data === YT.PlayerState.PAUSED) {
-          _partyLocalPlaying = false;
-          broadcastPartyState('paused');
+        if (_partyApplyingRemote) return;
+        if (isPartyHost()) {
+          if (e.data === YT.PlayerState.PLAYING) {
+            _partyLocalPlaying = true;
+            broadcastPartyState('playing');
+          } else if (e.data === YT.PlayerState.PAUSED) {
+            _partyLocalPlaying = false;
+            broadcastPartyState('paused');
+          }
+          const btn = $('partyPlayBtn');
+          if (btn) btn.textContent = _partyLocalPlaying ? 'Pause' : 'Play';
+        } else {
+          // Hard sync: reverse any unauthorized state change immediately
+          if (!CURRENT_PARTY) return;
+          if (CURRENT_PARTY.state === 'playing' && e.data === YT.PlayerState.PAUSED) {
+            try { _partyYTPlayer.playVideo(); } catch {}
+          } else if (CURRENT_PARTY.state === 'paused' && e.data === YT.PlayerState.PLAYING) {
+            try { _partyYTPlayer.pauseVideo(); } catch {}
+          }
         }
-        // Update the host's manual play/pause button label
-        const btn = $('partyPlayBtn');
-        if (btn) btn.textContent = _partyLocalPlaying ? 'Pause' : 'Play';
       },
     },
   });
 }
 
-// Read the host's player state and push it to the database. The realtime
-// subscription on the table tells everyone else to update.
 async function broadcastPartyState(state) {
-  if (!isPartyHost() || !_partyYTPlayer) return;
+  if (!isPartyHost() || !_partyYTPlayer || !CURRENT_PARTY) return;
   let position = 0;
   try {
     if (_partyProvider === 'youtube' && _partyYTPlayer.getCurrentTime) {
@@ -4395,18 +4698,16 @@ async function broadcastPartyState(state) {
   try {
     await rpc('update_listening_party', {
       p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
       p_state: state,
       p_position: position,
     });
   } catch {}
 }
 
-// Apply the latest server state to the local player. Called on initial join,
-// after every realtime broadcast, and on the polling fallback.
 function syncPartyToServer() {
   if (!CURRENT_PARTY || _partyApplyingRemote) return;
   _partyApplyingRemote = true;
-  // Compute the live target position
   let targetPos = CURRENT_PARTY.position_seconds || 0;
   if (CURRENT_PARTY.state === 'playing') {
     const elapsed = (Date.now() - new Date(CURRENT_PARTY.updated_at).getTime()) / 1000;
@@ -4415,38 +4716,27 @@ function syncPartyToServer() {
   if (_partyProvider === 'youtube' && _partyYTPlayer && _partyYTPlayer.seekTo) {
     try {
       const localPos = _partyYTPlayer.getCurrentTime ? _partyYTPlayer.getCurrentTime() : 0;
-      // Only seek if we're more than 1.5s off
       if (Math.abs(localPos - targetPos) > 1.5) {
         _partyYTPlayer.seekTo(targetPos, true);
       }
-      if (CURRENT_PARTY.state === 'playing') {
-        _partyYTPlayer.playVideo();
-      } else {
-        _partyYTPlayer.pauseVideo();
-      }
+      if (CURRENT_PARTY.state === 'playing') _partyYTPlayer.playVideo();
+      else _partyYTPlayer.pauseVideo();
     } catch {}
   } else if (_partyProvider === 'soundcloud') {
     const frame = document.getElementById('partySCFrame');
     if (frame && frame.contentWindow) {
       try {
+        frame.contentWindow.postMessage(JSON.stringify({ method: 'seekTo', value: targetPos * 1000 }), '*');
         frame.contentWindow.postMessage(JSON.stringify({
-          method: 'seekTo', value: targetPos * 1000,
-        }), '*');
-        frame.contentWindow.postMessage(JSON.stringify({
-          method: CURRENT_PARTY.state === 'playing' ? 'play' : 'pause',
+          method: CURRENT_PARTY.state === 'playing' ? 'play' : 'pause'
         }), '*');
       } catch {}
     }
   }
-  // Update timecode display
   const tc = $('partyTimecode');
   if (tc) tc.textContent = formatTimecode(targetPos);
-  // Update sync badge
   const sb = $('partySyncBadge');
-  if (sb) {
-    sb.textContent = 'Synced';
-    sb.classList.remove('drift');
-  }
+  if (sb) { sb.textContent = 'Synced'; sb.classList.remove('drift'); }
   setTimeout(() => { _partyApplyingRemote = false; }, 500);
 }
 
@@ -4457,74 +4747,129 @@ function formatTimecode(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// Drift check: every 5s while playing, recompute target position from server
-// state and seek if local player is more than 1.5s off.
 function startPartyDriftCheck() {
   if (_partyDriftTimer) clearInterval(_partyDriftTimer);
   _partyDriftTimer = setInterval(() => {
     if (!CURRENT_PARTY || _partyApplyingRemote) return;
-    if (CURRENT_PARTY.state !== 'playing') return;
+    const isHost = isPartyHost();
     let localPos = 0;
+    let localState = null;
     try {
       if (_partyProvider === 'youtube' && _partyYTPlayer && _partyYTPlayer.getCurrentTime) {
         localPos = _partyYTPlayer.getCurrentTime() || 0;
+        if (_partyYTPlayer.getPlayerState) localState = _partyYTPlayer.getPlayerState();
       } else { return; }
     } catch { return; }
-    const elapsed = (Date.now() - new Date(CURRENT_PARTY.updated_at).getTime()) / 1000;
+    const elapsed = CURRENT_PARTY.state === 'playing'
+      ? (Date.now() - new Date(CURRENT_PARTY.updated_at).getTime()) / 1000
+      : 0;
     const expected = (CURRENT_PARTY.position_seconds || 0) + elapsed;
     const drift = Math.abs(localPos - expected);
     const sb = $('partySyncBadge');
-    if (drift > 1.5) {
-      // Re-sync
-      if (!isPartyHost() && _partyYTPlayer && _partyYTPlayer.seekTo) {
+    if (!isHost) {
+      const tolerance = 0.5;
+      if (drift > tolerance && _partyYTPlayer && _partyYTPlayer.seekTo) {
         try { _partyYTPlayer.seekTo(expected, true); } catch {}
       }
-      if (sb) { sb.textContent = `Drift ${drift.toFixed(1)}s`; sb.classList.add('drift'); }
-    } else if (sb) {
-      sb.textContent = 'Synced';
-      sb.classList.remove('drift');
+      if (CURRENT_PARTY.state === 'playing' && localState === YT.PlayerState.PAUSED) {
+        try { _partyYTPlayer.playVideo(); } catch {}
+      } else if (CURRENT_PARTY.state === 'paused' && localState === YT.PlayerState.PLAYING) {
+        try { _partyYTPlayer.pauseVideo(); } catch {}
+      }
+      if (sb) {
+        if (drift > tolerance) { sb.textContent = `Resync ${drift.toFixed(1)}s`; sb.classList.add('drift'); }
+        else { sb.textContent = 'Synced'; sb.classList.remove('drift'); }
+      }
     }
-    // Update timecode display
     const tc = $('partyTimecode');
-    if (tc) tc.textContent = formatTimecode(expected);
-  }, 1000);
+    if (tc) tc.textContent = formatTimecode(CURRENT_PARTY.state === 'playing' ? expected : (CURRENT_PARTY.position_seconds || 0));
+  }, 500);
 }
 
-// Subscribe to realtime updates on the listening_party row + chat
+// Subscribe to realtime updates for the room we're currently in
 function startPartyRealtime() {
-  if (!_sb || _partyChannel) return;
+  if (!_sb || _partyChannel || !CURRENT_PARTY) return;
+  const partyId = CURRENT_PARTY.id;
   _partyChannel = _sb
-    .channel('listening-party')
+    .channel('listening-party-' + partyId)
     .on('postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'listening_party' },
+      { event: 'UPDATE', schema: 'public', table: 'listening_party', filter: 'id=eq.' + partyId },
       async () => {
-        await loadParty();
-        if (isPartyActive()) {
-          syncPartyToServer();
-        } else {
-          // Party ended — close the modal
+        const updated = await loadPartyById(partyId);
+        if (!updated) {
+          alert('The host ended the party.');
+          closePartyModal();
+          return;
+        }
+        CURRENT_PARTY = updated;
+        syncPartyToServer();
+      })
+    .on('postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'listening_party' },
+      (payload) => {
+        // Filtered DELETEs are unreliable in Supabase Realtime — listen
+        // unfiltered and check id ourselves.
+        if (payload.old && Number(payload.old.id) === partyId) {
+          alert('The host ended the party.');
           closePartyModal();
         }
       })
     .on('postgres_changes',
+      // Subscribe WITHOUT a filter — filtered chat subscriptions can drop
+      // events. We dedup by message id on the client side instead.
       { event: 'INSERT', schema: 'public', table: 'listening_party_chat' },
       (payload) => {
-        if (payload.new) {
-          _partyMessages.push(payload.new);
-          renderPartyMessages();
-        }
+        if (!payload.new) return;
+        if (Number(payload.new.party_id) !== partyId) return; // Not for us
+        appendPartyMessageIfNew(payload.new);
       })
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'listening_party_attendees' },
-      () => { loadPartyAttendees(); })
+      (payload) => {
+        const row = payload.new || payload.old;
+        if (!row || Number(row.party_id) !== partyId) return;
+        loadPartyAttendees();
+      })
     .subscribe();
 
-  // Polling fallback in case the websocket lags
+  // Polling fallback for the room state (party row)
   if (_partyPollTimer) clearInterval(_partyPollTimer);
   _partyPollTimer = setInterval(async () => {
-    await loadParty();
-    if (isPartyActive()) syncPartyToServer();
+    if (!CURRENT_PARTY) return;
+    const updated = await loadPartyById(CURRENT_PARTY.id);
+    if (!updated) {
+      alert('The host ended the party.');
+      closePartyModal();
+      return;
+    }
+    CURRENT_PARTY = updated;
+    syncPartyToServer();
   }, 5000);
+
+  // SEPARATE poll for chat — short interval as a backup if Realtime drops
+  // any inserts. Dedup by id in appendPartyMessageIfNew so re-fetching
+  // doesn't double-render.
+  if (_partyChatPollTimer) clearInterval(_partyChatPollTimer);
+  _partyChatPollTimer = setInterval(async () => {
+    if (!CURRENT_PARTY) return;
+    try {
+      const rows = await rpc('get_party_messages', { p_party_id: CURRENT_PARTY.id });
+      if (rows && rows.length) {
+        rows.forEach(appendPartyMessageIfNew);
+      }
+    } catch {}
+  }, 3000);
+}
+
+// Append a message to the chat only if we haven't already rendered it.
+function appendPartyMessageIfNew(msg) {
+  if (!msg || !msg.id) return;
+  const id = Number(msg.id);
+  if (_partyMessages.some(m => Number(m.id) === id)) return;
+  _partyMessages.push(msg);
+  // Keep messages sorted by id (chronological)
+  _partyMessages.sort((a, b) => Number(a.id) - Number(b.id));
+  renderPartyMessages();
 }
 
 function stopPartyRealtime() {
@@ -4533,6 +4878,7 @@ function stopPartyRealtime() {
     _partyChannel = null;
   }
   if (_partyPollTimer) { clearInterval(_partyPollTimer); _partyPollTimer = null; }
+  if (_partyChatPollTimer) { clearInterval(_partyChatPollTimer); _partyChatPollTimer = null; }
   if (_partyDriftTimer) { clearInterval(_partyDriftTimer); _partyDriftTimer = null; }
   if (_partyHeartbeatTimer) { clearInterval(_partyHeartbeatTimer); _partyHeartbeatTimer = null; }
 }
@@ -4540,14 +4886,15 @@ function stopPartyRealtime() {
 function startPartyHeartbeat() {
   if (_partyHeartbeatTimer) clearInterval(_partyHeartbeatTimer);
   _partyHeartbeatTimer = setInterval(() => {
-    if (!CURRENT_USER) return;
-    try { rpc('heartbeat_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+    if (!CURRENT_USER || !CURRENT_PARTY) return;
+    try { rpc('heartbeat_listening_party', { p_token: CURRENT_USER.token, p_party_id: CURRENT_PARTY.id }); } catch {}
   }, 25000);
 }
 
 async function loadPartyMessages() {
+  if (!CURRENT_PARTY) return;
   try {
-    _partyMessages = (await rpc('get_party_messages')) || [];
+    _partyMessages = (await rpc('get_party_messages', { p_party_id: CURRENT_PARTY.id })) || [];
     renderPartyMessages();
   } catch {}
 }
@@ -4564,8 +4911,9 @@ function renderPartyMessages() {
 }
 
 async function loadPartyAttendees() {
+  if (!CURRENT_PARTY) return;
   try {
-    _partyAttendees = (await rpc('get_party_attendees')) || [];
+    _partyAttendees = (await rpc('get_party_attendees', { p_party_id: CURRENT_PARTY.id })) || [];
     renderPartyAttendees();
   } catch {}
 }
@@ -4586,12 +4934,16 @@ function renderPartyAttendees() {
 
 async function postPartyMessage() {
   const input = $('partyChatInput');
-  if (!input || !CURRENT_USER) return;
+  if (!input || !CURRENT_USER || !CURRENT_PARTY) return;
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
   try {
-    await rpc('post_party_message', { p_token: CURRENT_USER.token, p_content: text });
+    await rpc('post_party_message', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+      p_content: text,
+    });
   } catch {}
 }
 
@@ -4606,47 +4958,43 @@ async function startParty() {
       p_token: CURRENT_USER.token, p_url: url, p_title: title,
     });
     if (!result || !result.ok) { alert((result && result.error) || 'Could not start'); return; }
-    await loadParty();
+    // Navigate into the new room
+    await loadActiveParties();
     renderPartyBadge();
-    // Re-render the modal in active state
-    renderPartyUI();
-    await loadPartyAttendees();
-    startPartyRealtime();
-    startPartyHeartbeat();
-    if (_dockYTPlayer && _dockYTPlayer.mute) _dockYTPlayer.mute();
+    if (result.party_id) {
+      await openPartyById(result.party_id);
+    }
   } catch (e) {
     alert('Could not start: ' + (e.message || e));
   }
 }
 
 async function endParty() {
-  if (!CURRENT_USER) return;
+  if (!CURRENT_USER || !CURRENT_PARTY) return;
   if (!confirm('End the party for everyone?')) return;
   try {
-    await rpc('end_listening_party', { p_token: CURRENT_USER.token });
+    await rpc('end_listening_party', {
+      p_token: CURRENT_USER.token, p_party_id: CURRENT_PARTY.id,
+    });
   } catch {}
-  CURRENT_PARTY = null;
-  renderPartyBadge();
   closePartyModal();
 }
 
-async function togglePartyPlay() {
+function togglePartyPlay() {
   if (!isPartyHost() || !_partyYTPlayer) return;
   try {
-    if (_partyLocalPlaying) {
-      _partyYTPlayer.pauseVideo();
-    } else {
-      _partyYTPlayer.playVideo();
-    }
+    if (_partyLocalPlaying) _partyYTPlayer.pauseVideo();
+    else _partyYTPlayer.playVideo();
   } catch {}
-  // Update button label
-  const btn = $('partyPlayBtn');
-  if (btn) btn.textContent = _partyLocalPlaying ? 'Play' : 'Pause';
 }
 
 async function leaveParty() {
-  if (CURRENT_USER) {
-    try { await rpc('leave_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+  if (CURRENT_USER && CURRENT_PARTY) {
+    try {
+      await rpc('leave_listening_party', {
+        p_token: CURRENT_USER.token, p_party_id: CURRENT_PARTY.id,
+      });
+    } catch {}
   }
   closePartyModal();
 }
@@ -4654,19 +5002,19 @@ async function leaveParty() {
 function closePartyModal() {
   stopPartyRealtime();
   closeModal('partyModal');
-  // Clear the player iframe so it stops playing
   const host = $('partyPlayer');
   if (host) host.innerHTML = '';
   _partyYTPlayer = null;
-  // Restore the ambient dock if there was one
+  CURRENT_PARTY = null;
   if (_dockYTPlayer && _dockYTPlayer.unMute && !_dockIsMuted) _dockYTPlayer.unMute();
+  // Refresh the directory & banner
+  loadActiveParties().then(renderPartyBadge);
 }
 
-// Periodic global check: even when modal is closed, refresh party state every
-// 30s so the auth-bar badge stays accurate.
+// Periodic global check: even when modal is closed, refresh party state
 setInterval(async () => {
   if (!_sb) return;
-  await loadParty();
+  await loadActiveParties();
   renderPartyBadge();
 }, 30000);
 
@@ -5108,12 +5456,9 @@ async function bumpProfileViewIfNeeded(username) {
 }
 
 async function refreshLikeStateFor(username) {
-  // Members can't like each other; hide the button entirely for logged-in users
+  // Anyone can like (members and guests). Server enforces one like per
+  // unique fingerprint. Members can like each other's profiles.
   const btn = $('pvLikeBtn');
-  if (CURRENT_USER) {
-    if (btn) btn.style.display = 'none';
-    return;
-  }
   if (btn) btn.style.display = '';
   const fp = getVisitorFingerprint();
   try {
@@ -5125,8 +5470,6 @@ async function refreshLikeStateFor(username) {
 }
 
 async function likeCurrentProfile() {
-  // Members can't like — guests only
-  if (CURRENT_USER) return;
   if (!CURRENT_VIEW) return;
   const btn = $('pvLikeBtn');
   if (!btn || btn.classList.contains('liked')) return;
@@ -6372,7 +6715,16 @@ document.addEventListener('click', (ev) => {
     case 'dock-collapse': toggleDockCollapse(); break;
     case 'save-music': saveAmbientMusic(); break;
     case 'music-mode': pickMusicMode(t.dataset.mode); break;
-    case 'open-party': openPartyModal(); break;
+    case 'open-party': {
+      // Two ways this is fired:
+      //  1) Homepage banner click — opens the OWNER's party directly via data-party-id
+      //  2) Party menu row click — opens the picked party via data-party-id
+      const pid = t.dataset.partyId || (t.closest('[data-party-id]') && t.closest('[data-party-id]').dataset.partyId);
+      if (pid) openPartyById(Number(pid));
+      else openPartyMenu();
+      break;
+    }
+    case 'open-party-menu': openPartyMenu(); break;
     case 'start-party': startParty(); break;
     case 'end-party': endParty(); break;
     case 'leave-party': leaveParty(); break;
@@ -6460,6 +6812,85 @@ document.addEventListener('keydown', (ev) => {
 // ============================================================
 // EMBERS
 // ============================================================
+// ============================================================
+// AUTO-UPDATE ON DEPLOY
+// ============================================================
+// On a fresh deploy, browsers often serve cached HTML for a long time.
+// We periodically fetch the live page and compare its build-version meta
+// tag against the one we loaded with. If they differ, a new deploy has
+// happened — show a small banner inviting the user to reload.
+const _BUILD_VERSION = (() => {
+  const m = document.querySelector('meta[name="build-version"]');
+  return m ? m.content : '';
+})();
+
+async function checkForNewDeploy() {
+  if (!_BUILD_VERSION) return; // No version tag, nothing to do
+  try {
+    // Cache-bust the request so we get the actually-deployed file
+    const url = window.location.pathname + '?v=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return;
+    const text = await res.text();
+    const match = text.match(/<meta\s+name="build-version"\s+content="([^"]+)"/);
+    if (!match) return;
+    const remote = match[1];
+    if (remote && remote !== _BUILD_VERSION) {
+      showUpdateBanner();
+    }
+  } catch {}
+}
+
+function showUpdateBanner() {
+  if (document.getElementById('updateBanner')) return;
+  const el = document.createElement('div');
+  el.id = 'updateBanner';
+  el.innerHTML = `
+    <span class="msg">A new version is available.</span>
+    <button class="reload-btn" id="updateReload">Reload</button>
+    <button class="dismiss-btn" id="updateDismiss" aria-label="Dismiss">&times;</button>`;
+  el.style.cssText = `
+    position: fixed; bottom: 16px; right: 16px; z-index: 9999;
+    background: linear-gradient(180deg, rgba(20,5,5,0.95) 0%, rgba(10,2,2,0.95) 100%);
+    border: 1px solid var(--blood-bright);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7), 0 0 18px rgba(196,30,30,0.4);
+    border-radius: 2px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--bone);
+    backdrop-filter: blur(8px);
+    max-width: calc(100vw - 32px);
+  `;
+  document.body.appendChild(el);
+  // Inline button styles so we don't need new CSS
+  const reloadBtn = el.querySelector('#updateReload');
+  reloadBtn.style.cssText = `
+    background: var(--blood); color: #fff;
+    border: 1px solid var(--blood-bright);
+    padding: 6px 14px; border-radius: 1px;
+    font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; cursor: pointer;
+  `;
+  const dismissBtn = el.querySelector('#updateDismiss');
+  dismissBtn.style.cssText = `
+    background: transparent; border: none;
+    color: rgba(232,212,184,0.5);
+    font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1;
+  `;
+  reloadBtn.onclick = () => location.reload(true);
+  dismissBtn.onclick = () => el.remove();
+}
+
+// Run a check shortly after load and every 5 minutes thereafter
+setTimeout(checkForNewDeploy, 30000);
+setInterval(checkForNewDeploy, 5 * 60 * 1000);
+// Also check when the tab regains focus (came back from another tab)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) checkForNewDeploy();
+});
+
 function spawnEmbers() {
   // Despite the legacy name, these are now slow gold dust motes drifting upward
   const c = $('embers');
@@ -6522,8 +6953,8 @@ async function init() {
   await loadRecommendation();
   // Load ambient music settings so the dock appears for guests
   await loadAmbientMusic();
-  // Load any active listening party so the badge can render
-  await loadParty();
+  // Load any active listening parties so the homepage banner + badge render
+  await loadActiveParties();
   renderTables();
   // Pull the current decree (if any) and overwrite the footer house rules
   applyDecreeToFooter();
