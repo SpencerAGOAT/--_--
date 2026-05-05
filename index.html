@@ -5085,8 +5085,12 @@ function formatStatNumber(n) {
   return (n / 1000000).toFixed(1) + 'm';
 }
 
-// Increment view count once per session per profile so refreshes don't inflate
+// Increment view count once per session per profile. Only counts for
+// logged-out guests — members viewing each other don't inflate their stats.
 async function bumpProfileViewIfNeeded(username) {
+  // Skip view-counting for any logged-in user (members shouldn't pad
+  // each other's view counts). Only public guests register a view.
+  if (CURRENT_USER) return;
   const key = 'fangtasia_viewed_' + username;
   try {
     if (sessionStorage.getItem(key)) return;
@@ -5094,7 +5098,6 @@ async function bumpProfileViewIfNeeded(username) {
   } catch {}
   try {
     await rpc('bump_profile_view', { p_username: username });
-    // Refresh the local cached friend so subsequent renders show new count
     const f = ALL_FRIENDS.find(x => x.username === username);
     if (f) {
       f.view_count = (Number(f.view_count) || 0) + 1;
@@ -5105,10 +5108,16 @@ async function bumpProfileViewIfNeeded(username) {
 }
 
 async function refreshLikeStateFor(username) {
+  // Members can't like each other; hide the button entirely for logged-in users
+  const btn = $('pvLikeBtn');
+  if (CURRENT_USER) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  if (btn) btn.style.display = '';
   const fp = getVisitorFingerprint();
   try {
     const result = await rpc('check_profile_like', { p_username: username, p_fingerprint: fp });
-    const btn = $('pvLikeBtn');
     if (btn && CURRENT_VIEW === username) {
       btn.classList.toggle('liked', !!(result && result.liked));
     }
@@ -5116,12 +5125,14 @@ async function refreshLikeStateFor(username) {
 }
 
 async function likeCurrentProfile() {
+  // Members can't like — guests only
+  if (CURRENT_USER) return;
   if (!CURRENT_VIEW) return;
   const btn = $('pvLikeBtn');
-  if (!btn || btn.classList.contains('liked')) return; // already liked
+  if (!btn || btn.classList.contains('liked')) return;
   const username = btn.dataset.username || CURRENT_VIEW;
   const fp = getVisitorFingerprint();
-  // Optimistic UI: bump count immediately, mark liked, animate
+  // Optimistic UI
   const lc = $('pvLikeCount');
   const f = ALL_FRIENDS.find(x => x.username === username);
   const optimistic = (Number(f && f.like_count) || 0) + 1;
@@ -5131,16 +5142,11 @@ async function likeCurrentProfile() {
   try {
     const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp });
     if (result && result.ok && typeof result.count === 'number') {
-      // Trust server's count
       if (lc && CURRENT_VIEW === username) lc.textContent = formatStatNumber(result.count);
       if (f) f.like_count = result.count;
-      if (!result.newly_liked) {
-        // Server says they already liked — keep button in liked state
-        btn.classList.add('liked');
-      }
+      if (!result.newly_liked) btn.classList.add('liked');
     }
   } catch (e) {
-    // On error, roll back optimistic update
     if (lc) lc.textContent = formatStatNumber(Number(f && f.like_count) || 0);
     btn.classList.remove('liked');
   }
