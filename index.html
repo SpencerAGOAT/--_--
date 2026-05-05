@@ -8,6 +8,11 @@
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
 
+<!-- Favicon: gothic F in neon-red glow, matching the Fangtasia sign. Inlined
+     as an SVG data URI so no separate file is needed. -->
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter></defs><rect width="64" height="64" fill="%230a0000"/><text x="32" y="50" font-family="UnifrakturCook,Times New Roman,serif" font-weight="bold" font-size="56" text-anchor="middle" fill="%23ff3333" filter="url(%23g)" opacity="0.7">F</text><text x="32" y="50" font-family="UnifrakturCook,Times New Roman,serif" font-weight="bold" font-size="56" text-anchor="middle" fill="%23ffffff">F</text></svg>'>
+<link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%230a0000"/><text x="32" y="50" font-family="Times New Roman,serif" font-weight="bold" font-size="52" text-anchor="middle" fill="%23ffffff">F</text></svg>'>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=UnifrakturCook:wght@700&display=swap">
@@ -263,6 +268,391 @@ body::after {
   font-size: 8px;
   letter-spacing: 1px;
 }
+
+/* ============ LISTENING PARTY ============ */
+/* Homepage banner that appears when a party is active. Sits at the top of
+   the bar scene, very visible — pulsing ring around a record dot, plus a
+   "Join" call-to-action. Clicking it opens the party modal. */
+.party-banner {
+  margin: 30px auto 40px;
+  max-width: 540px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(135deg, rgba(120,15,15,0.65) 0%, rgba(40,5,5,0.85) 100%);
+  border: 1px solid rgba(196,30,30,0.6);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 30px rgba(196,30,30,0.15), inset 0 0 30px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.party-banner::before {
+  /* Diagonal sheen that slowly sweeps across to draw the eye */
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation: bannerSweep 4s ease-in-out infinite;
+}
+@keyframes bannerSweep {
+  0% { left: -100%; }
+  60%, 100% { left: 200%; }
+}
+.party-banner:hover {
+  border-color: var(--blood-bright);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 40px rgba(196,30,30,0.4);
+  transform: translateY(-2px);
+}
+
+.banner-pulse {
+  position: relative;
+  width: 44px; height: 44px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.banner-pulse .dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255,255,255,0.6);
+  position: relative;
+  z-index: 2;
+}
+.banner-pulse .ring {
+  position: absolute;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 50%;
+  width: 14px; height: 14px;
+  animation: bannerPulse 2s ease-out infinite;
+}
+.banner-pulse .ring:nth-child(2) { animation-delay: 1s; }
+@keyframes bannerPulse {
+  0% { width: 14px; height: 14px; opacity: 0.8; }
+  100% { width: 50px; height: 50px; opacity: 0; }
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.banner-eyebrow {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,200,200,0.7);
+  margin-bottom: 4px;
+}
+.banner-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.banner-meta {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(232,212,184,0.65);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.banner-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.party-banner:hover .banner-cta {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.5);
+}
+.banner-cta .icon { width: 14px; height: 14px; }
+
+@media (max-width: 600px) {
+  .party-banner { margin: 20px 16px 30px; padding: 14px 16px; gap: 12px; }
+  .banner-title { font-size: 18px; }
+  .banner-cta { padding: 8px 12px; font-size: 10px; letter-spacing: 2px; }
+  .cta-label { display: none; }
+}
+
+/* The auth-bar party badge (already exists) — slightly tweaked positioning so
+   it sits next to the username comfortably. */
+/* When a party is active, an indicator badge appears in the auth bar
+   inviting members to join. The party modal hosts the player + chat. */
+.party-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, var(--blood-dark) 0%, var(--blood) 100%);
+  border: 1px solid var(--blood-bright);
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  box-shadow: 0 0 12px rgba(196,30,30,0.4);
+  animation: partyPulse 2s ease-in-out infinite;
+}
+.party-badge:hover {
+  background: var(--blood-bright);
+  box-shadow: 0 0 20px rgba(196,30,30,0.7);
+  transform: translateY(-1px);
+}
+.party-badge .pulse-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  animation: dockPulse 1.4s ease-in-out infinite;
+}
+@keyframes partyPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(196,30,30,0.4); }
+  50% { box-shadow: 0 0 22px rgba(196,30,30,0.7); }
+}
+
+.party-modal-content {
+  width: min(960px, 96vw);
+  height: min(720px, 90vh);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.party-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(212,165,116,0.2);
+  display: flex; align-items: center; gap: 16px;
+}
+.party-title {
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.party-title .host {
+  font-size: 11px;
+  color: rgba(232,212,184,0.6);
+  letter-spacing: 1px;
+  text-transform: none;
+  margin-left: 10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+}
+.party-attendees {
+  display: flex;
+  gap: -8px;
+  align-items: center;
+}
+.party-attendees .att {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--shadow);
+  background: var(--velvet);
+  margin-left: -8px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'UnifrakturCook', cursive;
+  font-size: 14px;
+  color: var(--blood-bright);
+}
+.party-attendees .att img { width: 100%; height: 100%; object-fit: cover; }
+.party-attendees .att-count {
+  margin-left: 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(232,212,184,0.6);
+}
+
+.party-body {
+  flex: 1;
+  display: flex;
+  min-height: 0; /* allow children to shrink */
+}
+.party-stage {
+  flex: 1;
+  display: flex; flex-direction: column;
+  background: #000;
+  position: relative;
+  min-width: 0;
+}
+.party-stage iframe {
+  width: 100%; height: 100%;
+  border: none;
+  flex: 1;
+}
+.party-stage-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex: 1; padding: 40px;
+  color: rgba(232,212,184,0.6);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  text-align: center;
+}
+.party-controls {
+  padding: 12px 18px;
+  background: linear-gradient(180deg, rgba(20,5,5,0.95) 0%, rgba(10,2,2,0.95) 100%);
+  border-top: 1px solid rgba(212,165,116,0.2);
+  display: flex; align-items: center; gap: 12px;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px;
+  color: rgba(232,212,184,0.7);
+}
+.party-controls .timecode {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+.party-controls .sync-badge {
+  padding: 3px 8px;
+  border: 1px solid rgba(46,204,64,0.6);
+  color: #2ecc40;
+  border-radius: 1px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.party-controls .sync-badge.drift {
+  border-color: rgba(250,166,26,0.7);
+  color: #faa61a;
+}
+.party-controls .host-tag {
+  padding: 3px 8px;
+  border: 1px solid var(--blood-bright);
+  color: var(--blood-bright);
+  border-radius: 1px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.party-controls .spacer { flex: 1; }
+.party-controls button {
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.4);
+  color: var(--gold);
+  padding: 6px 14px;
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.2s;
+}
+.party-controls button:hover {
+  background: var(--blood-dark);
+  border-color: var(--blood-bright);
+  color: #fff;
+}
+.party-controls button.danger {
+  border-color: rgba(196,30,30,0.5);
+  color: var(--blood-bright);
+}
+.party-controls button.danger:hover {
+  background: var(--blood);
+  color: #fff;
+}
+
+.party-chat {
+  width: 280px;
+  display: flex; flex-direction: column;
+  border-left: 1px solid rgba(212,165,116,0.2);
+  background: rgba(10,3,3,0.5);
+}
+.party-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 14px;
+}
+.party-chat-msg {
+  line-height: 1.4;
+  color: var(--bone);
+}
+.party-chat-msg .author {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+  opacity: 0.8;
+}
+.party-chat-form {
+  padding: 10px;
+  border-top: 1px solid rgba(212,165,116,0.15);
+  display: flex; gap: 8px;
+}
+.party-chat-form input {
+  flex: 1;
+  background: rgba(20,5,5,0.6);
+  border: 1px solid rgba(139,0,0,0.4);
+  color: var(--bone);
+  padding: 8px 10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  border-radius: 2px;
+  outline: none;
+}
+.party-chat-form input:focus {
+  border-color: var(--blood-bright);
+}
+
+@media (max-width: 700px) {
+  .party-modal-content { height: 100vh; width: 100vw; max-width: none; max-height: none; border-radius: 0; }
+  .party-body { flex-direction: column; }
+  .party-chat { width: 100%; border-left: none; border-top: 1px solid rgba(212,165,116,0.2); height: 240px; }
+  .party-stage { min-height: 240px; }
+}
+
+/* Start-party form (shown when no party is active and you click "Start Party") */
+.party-start-form {
+  padding: 40px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+  flex: 1;
+}
+.party-start-form h2 {
+  font-family: 'UnifrakturCook', cursive;
+  font-size: 32px;
+  color: var(--bone);
+}
+.party-start-form .desc {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  color: rgba(232,212,184,0.6);
+  text-align: center;
+  max-width: 400px;
+}
+.party-start-form .form-row { width: 100%; max-width: 400px; }
 
 /* ============ AMBIENT MUSIC DOCK ============ */
 /* Small floating player pinned to bottom-left. Admin sets the URL from the
@@ -542,27 +932,35 @@ body::after {
   margin-top: 40px;
 }
 .tables-grid {
-  /* The visible window — clips the long inner track. */
+  /* A real scroll container — visitors can drag/scroll/swipe to navigate manually,
+     and our JS marquee writes to scrollLeft to drift it automatically. */
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 30px 0;
   /* Soft fade at the edges so cards drift in/out gently rather than popping */
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
           mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  /* Hide the scrollbar — it's a marquee, not a typical scroll surface */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Allow JS-driven scroll snap to feel smoother (but no native snap which
+     would fight with our scrollLeft writes) */
+  scroll-behavior: auto;
 }
+.tables-grid::-webkit-scrollbar { display: none; }
 .tables-track {
-  /* The actual scrolling row. Cards are flexed inline; we translate this
-     element left over time. Width is intrinsic (sum of children). */
+  /* The actual row. Cards are flexed inline. Width is intrinsic. */
   display: flex;
   gap: 40px;
   width: max-content;
-  /* will-change tells the browser to optimize for the upcoming transform changes */
-  will-change: transform;
 }
 .tables-track > .table {
   flex: 0 0 220px;
+  /* Disable text-selection on drag so it doesn't fight with the marquee */
+  user-select: none;
+  -webkit-user-select: none;
 }
-/* Empty / single-card / fallback cases — center the row */
 .empty-bar { display: block; text-align: center; padding: 60px 20px; }
 
 .carousel-btn {
@@ -1226,6 +1624,74 @@ body::after {
   font-size: 18px;
   letter-spacing: 1px;
   text-shadow: 0 0 10px rgba(196,30,30,0.3);
+}
+
+/* Profile stats: views + likes shown in the header. The like is a clickable
+   button that any visitor (logged-in or not) can press once. */
+.profile-stats {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(139,0,0,0.2);
+}
+.profile-stats .stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(232,212,184,0.55);
+  padding: 4px 8px;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.profile-stats .stat-icon {
+  width: 16px; height: 16px;
+  color: rgba(212,165,116,0.6);
+  transition: all 0.25s;
+}
+.profile-stats .stat-count {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--bone);
+  letter-spacing: 0.5px;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+.profile-stats .stat-label { opacity: 0.6; }
+
+/* Like button — clickable, shows red heart when active */
+.profile-stats .like-btn {
+  cursor: pointer;
+}
+.profile-stats .like-btn:hover .stat-icon {
+  color: var(--blood-bright);
+  transform: scale(1.15);
+}
+.profile-stats .like-btn:hover .stat-count { color: #fff; }
+.profile-stats .like-btn.liked .stat-icon {
+  color: var(--blood-bright);
+  filter: drop-shadow(0 0 4px rgba(196,30,30,0.5));
+}
+.profile-stats .like-btn.liked .stat-count { color: var(--blood-bright); }
+.profile-stats .like-btn.liked {
+  cursor: default;
+}
+/* Quick pop animation when newly liked */
+.profile-stats .like-btn.just-liked .stat-icon {
+  animation: heartPop 0.5s ease-out;
+}
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.5); }
+  100% { transform: scale(1); }
 }
 
 /* ============ LINEAGE TREE (basement) ============ */
@@ -2252,6 +2718,8 @@ body.is-admin .neon-sign .f-trigger:hover {
     <symbol id="i-volume" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/><path d="M16 8c1.5 1 2.5 2.5 2.5 4s-1 3-2.5 4M19 5c2.5 1.5 4 4 4 7s-1.5 5.5-4 7" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
     <symbol id="i-volume-mute" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/><path d="M16 9l5 5M21 9l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-collapse" viewBox="0 0 24 24"><path d="M9 6L15 12L9 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9C.5 8 3 4 7 4c2 0 3.5 1 5 3 1.5-2 3-3 5-3 4 0 6.5 4 4.5 8C19 16.5 12 21 12 21z" fill="currentColor"/></symbol>
     <!-- Drink glasses: each scaled to 14×16 viewBox so they swap cleanly -->
     <!-- Wine: tulip glass with stem -->
     <symbol id="d-wine" viewBox="0 0 14 16">
@@ -2394,6 +2862,15 @@ body.is-admin .neon-sign .f-trigger:hover {
   <div class="dock-iframe-host" id="dockIframeHost"></div>
 </div>
 
+<!-- ========================================================== -->
+<!-- MODAL: Listening Party                                       -->
+<!-- ========================================================== -->
+<div class="modal-overlay" id="partyModal" data-onbg="leave-party">
+  <div class="modal-content party-modal-content" id="partyContent">
+    <!-- Content rendered dynamically based on whether a party is active. -->
+  </div>
+</div>
+
 <!-- Discreet staff entrance trigger - bottom right corner -->
 <button class="staff-door" id="staffDoor" data-action="staff-door" title="Staff Entrance" aria-label="Members entrance">
   <svg class="icon"><use href="#i-keyhole"/></svg>
@@ -2413,6 +2890,25 @@ body.is-admin .neon-sign .f-trigger:hover {
 
 <!-- Bar scene -->
 <main class="bar-scene">
+  <!-- Homepage party banner: visible to everyone when a party is active.
+       JS toggles its display based on CURRENT_PARTY. -->
+  <div class="party-banner" id="partyBanner" data-action="open-party" style="display:none;">
+    <div class="banner-pulse">
+      <span class="ring"></span>
+      <span class="ring"></span>
+      <span class="dot"></span>
+    </div>
+    <div class="banner-text">
+      <div class="banner-eyebrow">Now Playing</div>
+      <div class="banner-title" id="partyBannerTitle">Listening Party</div>
+      <div class="banner-meta" id="partyBannerMeta">hosted by someone</div>
+    </div>
+    <div class="banner-cta">
+      <span class="cta-label">Join</span>
+      <svg class="icon"><use href="#i-chevron-right"/></svg>
+    </div>
+  </div>
+
   <div class="bartender-rec" id="bartenderRec" style="display:none;" data-action="open-recommendation"></div>
   <section class="stage-section" id="stageSection">
     <div class="stage-banner">Tonight's Featured Guest</div>
@@ -2436,6 +2932,18 @@ body.is-admin .neon-sign .f-trigger:hover {
       <div class="modal-title" id="pvTitle"></div>
       <div class="last-seen-line" id="pvLastSeen"></div>
       <div class="invited-by" id="pvInvitedBy" style="display:none;"></div>
+      <div class="profile-stats" id="pvStats">
+        <span class="stat-item">
+          <svg class="stat-icon"><use href="#i-eye"/></svg>
+          <span class="stat-count" id="pvViewCount">0</span>
+          <span class="stat-label">views</span>
+        </span>
+        <button class="stat-item like-btn" id="pvLikeBtn" data-action="like-profile" type="button" aria-label="Like profile">
+          <svg class="stat-icon"><use href="#i-heart"/></svg>
+          <span class="stat-count" id="pvLikeCount">0</span>
+          <span class="stat-label">likes</span>
+        </button>
+      </div>
     </div>
     <div class="modal-section drink-section" id="pvDrinkSection">
       <div class="section-label">Drink of Choice</div>
@@ -2517,6 +3025,13 @@ body.is-admin .neon-sign .f-trigger:hover {
         <label>Drink of Choice</label>
         <div class="drink-picker" id="emDrinkPicker"></div>
         <span class="help">Pick what you order. Tap again to clear.</span>
+      </div>
+
+      <div class="form-row">
+        <label>Quick Links</label>
+        <div class="socials-editor" id="emSocials"></div>
+        <button class="btn btn-ghost btn-sm" data-action="add-social" data-target="emSocials" style="margin-top:10px;" type="button"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Link</button>
+        <span class="help">These show as icon tiles on your profile. Up to 12.</span>
       </div>
 
       <div class="form-row">
@@ -2860,7 +3375,7 @@ body.is-admin .neon-sign .f-trigger:hover {
       <div class="form-row">
         <label>Socials</label>
         <div class="socials-editor" id="mmSocials"></div>
-        <button class="btn btn-ghost btn-sm" data-action="add-social" style="margin-top:10px;"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Link</button>
+        <button class="btn btn-ghost btn-sm" data-action="add-social" data-target="mmSocials" style="margin-top:10px;"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Link</button>
       </div>
 
       <div class="form-row" id="mmAdminRow">
@@ -3512,6 +4027,7 @@ function renderAuthBar() {
       : '';
     bar.innerHTML = `
       <span class="auth-name">${escapeHtml(CURRENT_USER.username)} ${adminTag}</span>
+      <button class="auth-link" data-action="open-party"><svg class="icon icon-sm"><use href="#i-play"/></svg> Party</button>
       <button class="auth-link" data-action="open-edit-me"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Edit</button>
       ${manageBtn}
       <button class="auth-link" data-action="logout"><svg class="icon icon-sm"><use href="#i-logout"/></svg> Out</button>`;
@@ -3529,6 +4045,8 @@ function renderAuthBar() {
     // Hide basement entrance when logged out
     if (basementBtn) basementBtn.classList.remove('visible');
   }
+  // Re-add the active-party badge if there's a party going
+  renderPartyBadge();
 }
 
 // Smart trigger: opens setup if no members exist, otherwise opens bouncer login
@@ -3632,6 +4150,527 @@ function renderTables() {
 // Random pick that excludes ghosts. Stable for ~10 minutes per visitor so it doesn't
 // flicker on every action; new pick each visit.
 // ============================================================
+// LISTENING PARTY (synced playback for everyone in the room)
+// ============================================================
+// Architecture:
+// - One global party at a time (single-row table)
+// - Host's player publishes state changes to DB; clients subscribe via
+//   Supabase Realtime + poll every 2s as fallback
+// - On state update, non-host players seek to the live position and play/pause
+// - Drift correction every 5s while playing: if local player is more than
+//   1.5s off from the expected position, seek to correct it
+// ============================================================
+let CURRENT_PARTY = null; // {host, url, state, title, position_seconds, live_position}
+let _partyYTPlayer = null;
+let _partyProvider = null; // 'youtube' or 'soundcloud'
+let _partyChannel = null;  // Supabase realtime channel
+let _partyPollTimer = null;
+let _partyHeartbeatTimer = null;
+let _partyDriftTimer = null;
+let _partyMessages = [];
+let _partyAttendees = [];
+let _partyLastFetchedAt = 0;
+let _partyLocalPlaying = false;
+let _partyApplyingRemote = false; // suppress sending updates while applying remote state
+
+async function loadParty() {
+  try {
+    const rows = await rpc('get_listening_party');
+    CURRENT_PARTY = (rows && rows[0]) || null;
+    if (CURRENT_PARTY && CURRENT_PARTY.state === 'idle') CURRENT_PARTY = null;
+    _partyLastFetchedAt = Date.now();
+  } catch {
+    CURRENT_PARTY = null;
+  }
+}
+
+function isPartyActive() {
+  return CURRENT_PARTY && CURRENT_PARTY.host && CURRENT_PARTY.url;
+}
+
+function isPartyHost() {
+  return isPartyActive() && CURRENT_USER && CURRENT_PARTY.host === CURRENT_USER.username;
+}
+
+// The auth bar's "Listening Party" badge — appears when a party is active
+function renderPartyBadge() {
+  const bar = $('authBar');
+  const banner = $('partyBanner');
+
+  // Toggle the homepage banner so all visitors (logged in or not) see the party
+  if (banner) {
+    if (isPartyActive()) {
+      banner.style.display = '';
+      const title = $('partyBannerTitle');
+      const meta = $('partyBannerMeta');
+      if (title) title.textContent = CURRENT_PARTY.title || 'Listening Party';
+      if (meta) meta.textContent = `hosted by ${CURRENT_PARTY.host}`;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // Auth-bar badge (small, only logged-in members see it)
+  if (!bar) return;
+  const existing = bar.querySelector('.party-badge');
+  if (existing) existing.remove();
+  if (!isPartyActive() || !CURRENT_USER) return;
+  const badge = document.createElement('button');
+  badge.className = 'party-badge';
+  badge.dataset.action = 'open-party';
+  badge.innerHTML = `<span class="pulse-dot"></span> ${escapeHtml(CURRENT_PARTY.title || 'Listening Party')}`;
+  bar.insertBefore(badge, bar.firstChild);
+}
+
+// Open the party modal — three states: no party (start form), active (player + chat), not logged in
+async function openPartyModal() {
+  await loadParty();
+  const content = $('partyContent');
+  if (!content) return;
+
+  if (!CURRENT_USER) {
+    content.innerHTML = `
+      <div class="party-start-form">
+        <h2>Listening Party</h2>
+        <p class="desc">Sign in to join the party.</p>
+        <button class="btn btn-primary" data-action="show-login">Sign In</button>
+      </div>`;
+    openModal('partyModal');
+    return;
+  }
+
+  if (!isPartyActive()) {
+    content.innerHTML = `
+      <div class="party-start-form">
+        <h2>Start a Listening Party</h2>
+        <p class="desc">Pick a YouTube or SoundCloud track. Everyone here will hear it together, in sync. You'll be the host — your play, pause, and seek control everyone else's player.</p>
+        <div class="form-row">
+          <label>Track URL</label>
+          <input type="text" class="form-input" id="partyStartUrl" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-row">
+          <label>Party Name (optional)</label>
+          <input type="text" class="form-input" id="partyStartTitle" maxlength="100" placeholder="Saturday Mixtape">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button class="btn btn-ghost" data-action="leave-party">Cancel</button>
+          <button class="btn btn-primary" data-action="start-party"><svg class="icon"><use href="#i-play"/></svg> Start Party</button>
+        </div>
+      </div>`;
+    openModal('partyModal');
+    return;
+  }
+
+  // Active party — render full party UI
+  renderPartyUI();
+  openModal('partyModal');
+  // Mark this user as in attendance and start subscriptions
+  try { await rpc('join_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+  await loadPartyMessages();
+  await loadPartyAttendees();
+  startPartyRealtime();
+  startPartyHeartbeat();
+  // Mute the ambient dock so we don't double-play music
+  if (_dockYTPlayer && _dockYTPlayer.mute) _dockYTPlayer.mute();
+}
+
+function renderPartyUI() {
+  const content = $('partyContent');
+  if (!content || !CURRENT_PARTY) return;
+  const isHost = isPartyHost();
+  content.innerHTML = `
+    <div class="party-header">
+      <div class="party-title">
+        ${escapeHtml(CURRENT_PARTY.title || 'Listening Party')}
+        <span class="host">hosted by ${escapeHtml(CURRENT_PARTY.host)}</span>
+      </div>
+      <div class="party-attendees" id="partyAttendees"></div>
+    </div>
+    <div class="party-body">
+      <div class="party-stage">
+        <div id="partyPlayer" style="flex:1; min-height:0; display:flex;"></div>
+        <div class="party-controls">
+          ${isHost ? '<span class="host-tag">Host</span>' : '<span class="sync-badge" id="partySyncBadge">Synced</span>'}
+          <span class="timecode" id="partyTimecode">0:00</span>
+          <span class="spacer"></span>
+          ${isHost ? `<button data-action="party-toggle-play" id="partyPlayBtn">Pause</button>
+                      <button class="danger" data-action="end-party">End Party</button>`
+                  : '<button data-action="leave-party">Leave</button>'}
+        </div>
+      </div>
+      <div class="party-chat">
+        <div class="party-chat-messages" id="partyChatMessages"></div>
+        <div class="party-chat-form">
+          <input type="text" id="partyChatInput" placeholder="Say something..." maxlength="500">
+          <button class="btn btn-primary btn-sm" data-action="post-party-message"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+
+  buildPartyPlayer();
+  // Enter key submits chat
+  const input = $('partyChatInput');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') postPartyMessage();
+    });
+  }
+}
+
+function buildPartyPlayer() {
+  const host = $('partyPlayer');
+  if (!host || !CURRENT_PARTY) return;
+  host.innerHTML = '';
+  _partyYTPlayer = null;
+
+  const url = CURRENT_PARTY.url;
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    _partyProvider = 'youtube';
+    const id = extractYouTubeId(url);
+    if (!id) return;
+    // Start position based on the live position from server
+    const startSec = Math.max(0, Math.floor(CURRENT_PARTY.live_position || 0));
+    host.innerHTML = `<iframe id="partyYTFrame" style="width:100%;height:100%;border:none;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=0&controls=${isPartyHost() ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1" allow="autoplay; encrypted-media"></iframe>`;
+    if (!window.YT || !window.YT.Player) {
+      if (!document.getElementById('ytApiScript')) {
+        const tag = document.createElement('script');
+        tag.id = 'ytApiScript'; tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (prev) prev(); initPartyYTPlayer(); };
+    } else {
+      setTimeout(initPartyYTPlayer, 100);
+    }
+  } else if (url.includes('soundcloud.com')) {
+    _partyProvider = 'soundcloud';
+    let scUrl = url;
+    if (!url.includes('w.soundcloud.com/player')) {
+      scUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23c41e1e&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&visual=true`;
+    }
+    host.innerHTML = `<iframe id="partySCFrame" style="width:100%;height:100%;border:none;" src="${escapeAttr(scUrl)}" allow="autoplay"></iframe>`;
+    // SoundCloud sync is best-effort: we can postMessage seekTo/play/pause
+    setTimeout(syncPartyToServer, 1500);
+  }
+}
+
+function initPartyYTPlayer() {
+  const frame = document.getElementById('partyYTFrame');
+  if (!frame || !window.YT) return;
+  _partyYTPlayer = new YT.Player(frame, {
+    events: {
+      onReady: () => {
+        // Apply current server state immediately
+        syncPartyToServer();
+        startPartyDriftCheck();
+      },
+      onStateChange: (e) => {
+        // Only the host broadcasts state changes
+        if (!isPartyHost() || _partyApplyingRemote) return;
+        if (e.data === YT.PlayerState.PLAYING) {
+          _partyLocalPlaying = true;
+          broadcastPartyState('playing');
+        } else if (e.data === YT.PlayerState.PAUSED) {
+          _partyLocalPlaying = false;
+          broadcastPartyState('paused');
+        }
+        // Update the host's manual play/pause button label
+        const btn = $('partyPlayBtn');
+        if (btn) btn.textContent = _partyLocalPlaying ? 'Pause' : 'Play';
+      },
+    },
+  });
+}
+
+// Read the host's player state and push it to the database. The realtime
+// subscription on the table tells everyone else to update.
+async function broadcastPartyState(state) {
+  if (!isPartyHost() || !_partyYTPlayer) return;
+  let position = 0;
+  try {
+    if (_partyProvider === 'youtube' && _partyYTPlayer.getCurrentTime) {
+      position = _partyYTPlayer.getCurrentTime() || 0;
+    }
+  } catch {}
+  try {
+    await rpc('update_listening_party', {
+      p_token: CURRENT_USER.token,
+      p_state: state,
+      p_position: position,
+    });
+  } catch {}
+}
+
+// Apply the latest server state to the local player. Called on initial join,
+// after every realtime broadcast, and on the polling fallback.
+function syncPartyToServer() {
+  if (!CURRENT_PARTY || _partyApplyingRemote) return;
+  _partyApplyingRemote = true;
+  // Compute the live target position
+  let targetPos = CURRENT_PARTY.position_seconds || 0;
+  if (CURRENT_PARTY.state === 'playing') {
+    const elapsed = (Date.now() - new Date(CURRENT_PARTY.updated_at).getTime()) / 1000;
+    targetPos = (CURRENT_PARTY.position_seconds || 0) + elapsed;
+  }
+  if (_partyProvider === 'youtube' && _partyYTPlayer && _partyYTPlayer.seekTo) {
+    try {
+      const localPos = _partyYTPlayer.getCurrentTime ? _partyYTPlayer.getCurrentTime() : 0;
+      // Only seek if we're more than 1.5s off
+      if (Math.abs(localPos - targetPos) > 1.5) {
+        _partyYTPlayer.seekTo(targetPos, true);
+      }
+      if (CURRENT_PARTY.state === 'playing') {
+        _partyYTPlayer.playVideo();
+      } else {
+        _partyYTPlayer.pauseVideo();
+      }
+    } catch {}
+  } else if (_partyProvider === 'soundcloud') {
+    const frame = document.getElementById('partySCFrame');
+    if (frame && frame.contentWindow) {
+      try {
+        frame.contentWindow.postMessage(JSON.stringify({
+          method: 'seekTo', value: targetPos * 1000,
+        }), '*');
+        frame.contentWindow.postMessage(JSON.stringify({
+          method: CURRENT_PARTY.state === 'playing' ? 'play' : 'pause',
+        }), '*');
+      } catch {}
+    }
+  }
+  // Update timecode display
+  const tc = $('partyTimecode');
+  if (tc) tc.textContent = formatTimecode(targetPos);
+  // Update sync badge
+  const sb = $('partySyncBadge');
+  if (sb) {
+    sb.textContent = 'Synced';
+    sb.classList.remove('drift');
+  }
+  setTimeout(() => { _partyApplyingRemote = false; }, 500);
+}
+
+function formatTimecode(seconds) {
+  if (!isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// Drift check: every 5s while playing, recompute target position from server
+// state and seek if local player is more than 1.5s off.
+function startPartyDriftCheck() {
+  if (_partyDriftTimer) clearInterval(_partyDriftTimer);
+  _partyDriftTimer = setInterval(() => {
+    if (!CURRENT_PARTY || _partyApplyingRemote) return;
+    if (CURRENT_PARTY.state !== 'playing') return;
+    let localPos = 0;
+    try {
+      if (_partyProvider === 'youtube' && _partyYTPlayer && _partyYTPlayer.getCurrentTime) {
+        localPos = _partyYTPlayer.getCurrentTime() || 0;
+      } else { return; }
+    } catch { return; }
+    const elapsed = (Date.now() - new Date(CURRENT_PARTY.updated_at).getTime()) / 1000;
+    const expected = (CURRENT_PARTY.position_seconds || 0) + elapsed;
+    const drift = Math.abs(localPos - expected);
+    const sb = $('partySyncBadge');
+    if (drift > 1.5) {
+      // Re-sync
+      if (!isPartyHost() && _partyYTPlayer && _partyYTPlayer.seekTo) {
+        try { _partyYTPlayer.seekTo(expected, true); } catch {}
+      }
+      if (sb) { sb.textContent = `Drift ${drift.toFixed(1)}s`; sb.classList.add('drift'); }
+    } else if (sb) {
+      sb.textContent = 'Synced';
+      sb.classList.remove('drift');
+    }
+    // Update timecode display
+    const tc = $('partyTimecode');
+    if (tc) tc.textContent = formatTimecode(expected);
+  }, 1000);
+}
+
+// Subscribe to realtime updates on the listening_party row + chat
+function startPartyRealtime() {
+  if (!supabase || _partyChannel) return;
+  _partyChannel = supabase
+    .channel('listening-party')
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'listening_party' },
+      async () => {
+        await loadParty();
+        if (isPartyActive()) {
+          syncPartyToServer();
+        } else {
+          // Party ended — close the modal
+          closePartyModal();
+        }
+      })
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'listening_party_chat' },
+      (payload) => {
+        if (payload.new) {
+          _partyMessages.push(payload.new);
+          renderPartyMessages();
+        }
+      })
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'listening_party_attendees' },
+      () => { loadPartyAttendees(); })
+    .subscribe();
+
+  // Polling fallback in case the websocket lags
+  if (_partyPollTimer) clearInterval(_partyPollTimer);
+  _partyPollTimer = setInterval(async () => {
+    await loadParty();
+    if (isPartyActive()) syncPartyToServer();
+  }, 5000);
+}
+
+function stopPartyRealtime() {
+  if (_partyChannel) {
+    try { supabase.removeChannel(_partyChannel); } catch {}
+    _partyChannel = null;
+  }
+  if (_partyPollTimer) { clearInterval(_partyPollTimer); _partyPollTimer = null; }
+  if (_partyDriftTimer) { clearInterval(_partyDriftTimer); _partyDriftTimer = null; }
+  if (_partyHeartbeatTimer) { clearInterval(_partyHeartbeatTimer); _partyHeartbeatTimer = null; }
+}
+
+function startPartyHeartbeat() {
+  if (_partyHeartbeatTimer) clearInterval(_partyHeartbeatTimer);
+  _partyHeartbeatTimer = setInterval(() => {
+    if (!CURRENT_USER) return;
+    try { rpc('heartbeat_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+  }, 25000);
+}
+
+async function loadPartyMessages() {
+  try {
+    _partyMessages = (await rpc('get_party_messages')) || [];
+    renderPartyMessages();
+  } catch {}
+}
+
+function renderPartyMessages() {
+  const c = $('partyChatMessages');
+  if (!c) return;
+  c.innerHTML = _partyMessages.map(m => `
+    <div class="party-chat-msg">
+      <span class="author">${escapeHtml(m.author)}</span>
+      ${escapeHtml(m.content)}
+    </div>`).join('');
+  c.scrollTop = c.scrollHeight;
+}
+
+async function loadPartyAttendees() {
+  try {
+    _partyAttendees = (await rpc('get_party_attendees')) || [];
+    renderPartyAttendees();
+  } catch {}
+}
+
+function renderPartyAttendees() {
+  const el = $('partyAttendees');
+  if (!el) return;
+  const visible = _partyAttendees.slice(0, 5);
+  const more = Math.max(0, _partyAttendees.length - 5);
+  el.innerHTML = visible.map(a => `
+    <div class="att" title="${escapeAttr(a.username)}">
+      ${a.avatar
+        ? `<img src="${escapeAttr(a.avatar)}" alt="${escapeAttr(a.username)}">`
+        : escapeHtml(a.username.charAt(0).toUpperCase())}
+    </div>`).join('') + (more ? `<span class="att-count">+${more}</span>` : '') +
+    `<span class="att-count" style="margin-left: 12px;">${_partyAttendees.length} listening</span>`;
+}
+
+async function postPartyMessage() {
+  const input = $('partyChatInput');
+  if (!input || !CURRENT_USER) return;
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  try {
+    await rpc('post_party_message', { p_token: CURRENT_USER.token, p_content: text });
+  } catch {}
+}
+
+async function startParty() {
+  if (!CURRENT_USER) return;
+  const url = $('partyStartUrl').value.trim();
+  const title = $('partyStartTitle').value.trim();
+  if (!url) { alert('Provide a YouTube or SoundCloud URL'); return; }
+  if (!validateUrl(url)) { alert('URL must start with https://'); return; }
+  try {
+    const result = await rpc('start_listening_party', {
+      p_token: CURRENT_USER.token, p_url: url, p_title: title,
+    });
+    if (!result || !result.ok) { alert((result && result.error) || 'Could not start'); return; }
+    await loadParty();
+    renderPartyBadge();
+    // Re-render the modal in active state
+    renderPartyUI();
+    await loadPartyAttendees();
+    startPartyRealtime();
+    startPartyHeartbeat();
+    if (_dockYTPlayer && _dockYTPlayer.mute) _dockYTPlayer.mute();
+  } catch (e) {
+    alert('Could not start: ' + (e.message || e));
+  }
+}
+
+async function endParty() {
+  if (!CURRENT_USER) return;
+  if (!confirm('End the party for everyone?')) return;
+  try {
+    await rpc('end_listening_party', { p_token: CURRENT_USER.token });
+  } catch {}
+  CURRENT_PARTY = null;
+  renderPartyBadge();
+  closePartyModal();
+}
+
+async function togglePartyPlay() {
+  if (!isPartyHost() || !_partyYTPlayer) return;
+  try {
+    if (_partyLocalPlaying) {
+      _partyYTPlayer.pauseVideo();
+    } else {
+      _partyYTPlayer.playVideo();
+    }
+  } catch {}
+  // Update button label
+  const btn = $('partyPlayBtn');
+  if (btn) btn.textContent = _partyLocalPlaying ? 'Play' : 'Pause';
+}
+
+async function leaveParty() {
+  if (CURRENT_USER) {
+    try { await rpc('leave_listening_party', { p_token: CURRENT_USER.token }); } catch {}
+  }
+  closePartyModal();
+}
+
+function closePartyModal() {
+  stopPartyRealtime();
+  closeModal('partyModal');
+  // Clear the player iframe so it stops playing
+  const host = $('partyPlayer');
+  if (host) host.innerHTML = '';
+  _partyYTPlayer = null;
+  // Restore the ambient dock if there was one
+  if (_dockYTPlayer && _dockYTPlayer.unMute && !_dockIsMuted) _dockYTPlayer.unMute();
+}
+
+// Periodic global check: even when modal is closed, refresh party state every
+// 30s so the auth-bar badge stays accurate.
+setInterval(async () => {
+  if (!supabase) return;
+  await loadParty();
+  renderPartyBadge();
+}, 30000);
+
+// ============================================================
 // MARQUEE (members slowly auto-scroll, looping forever)
 // ============================================================
 // The track is the inner element that holds all cards (rendered by
@@ -3650,34 +4689,85 @@ function startMarquee() {
 
   // Cancel any previous loop (in case renderTables re-runs)
   if (_marqueeRAF) cancelAnimationFrame(_marqueeRAF);
-  _marqueeOffset = 0;
-  track.style.transform = 'translateX(0px)';
 
-  // Pause on hover/touch so people can read names / click
-  grid.onmouseenter = () => { _marqueePaused = true; };
-  grid.onmouseleave = () => { _marqueePaused = false; };
-  grid.ontouchstart = () => { _marqueePaused = true; };
-  grid.ontouchend = () => { setTimeout(() => { _marqueePaused = false; }, 2000); };
+  // Two pause modes:
+  //   - Hover/touch: pause and resume from current position when they leave
+  //   - Manual scroll/drag/wheel: pause for 3 seconds after last interaction,
+  //     then resume from where they ended up (smoothly continuing the loop)
+  let hoverPaused = false;
+  let lastUserInteraction = 0;
+  let lastWriteValue = -1; // tracks our last scrollLeft write so we can detect user scrolls
 
-  let lastTs = 0;
-  const tick = (ts) => {
-    if (!lastTs) lastTs = ts;
-    const dt = ts - lastTs;
-    lastTs = ts;
+  grid.addEventListener('mouseenter', () => { hoverPaused = true; });
+  grid.addEventListener('mouseleave', () => { hoverPaused = false; });
+  grid.addEventListener('touchstart', () => {
+    hoverPaused = true;
+    lastUserInteraction = Date.now();
+  }, { passive: true });
+  grid.addEventListener('touchend', () => {
+    setTimeout(() => { hoverPaused = false; }, 1500);
+    lastUserInteraction = Date.now();
+  }, { passive: true });
 
-    if (!_marqueePaused) {
-      // ~25 pixels per second — slow showcase pace
-      const speed = 25 / 1000;
-      _marqueeOffset += speed * dt;
+  // Detect any user-initiated scroll (wheel, drag-scroll, keyboard)
+  // by checking if scrollLeft changed since our last write.
+  grid.addEventListener('scroll', () => {
+    if (Math.abs(grid.scrollLeft - lastWriteValue) > 1) {
+      lastUserInteraction = Date.now();
+    }
+  }, { passive: true });
+  // Treat wheel events explicitly so even a small wheel tick counts as interaction
+  grid.addEventListener('wheel', () => { lastUserInteraction = Date.now(); }, { passive: true });
 
-      // The track contains [originalCards, duplicateCards]. We measure the
-      // width of the original set by reading the data attribute we set in
-      // renderTables. When we've translated past that, we wrap.
-      const halfWidth = parseFloat(track.dataset.halfWidth || '0');
-      if (halfWidth > 0 && _marqueeOffset >= halfWidth) {
-        _marqueeOffset -= halfWidth;
+  const speed = 25; // pixels per second
+  const idleResumeDelay = 1500; // ms — wait this long after user stops before auto-resuming
+  const catchUpDuration = 800; // ms — how long the smooth catch-up to synced position lasts
+
+  // After manual interaction, we smoothly transition back to the time-based
+  // position over `catchUpDuration` so all visitors stay in sync long-term.
+  let catchUpStart = 0;
+  let catchUpFrom = 0;
+
+  const tick = () => {
+    const halfWidth = parseFloat(track.dataset.halfWidth || '0');
+    if (halfWidth > 0) {
+      const sinceInteraction = Date.now() - lastUserInteraction;
+      const isInteracting = hoverPaused || sinceInteraction < idleResumeDelay;
+
+      // The synced position — same formula on every device, so all visitors
+      // agree on where the marquee should be at any given wall-clock moment.
+      const timeBased = ((Date.now() / 1000) * speed) % halfWidth;
+
+      if (isInteracting) {
+        // Don't touch scrollLeft. User has full control.
+        catchUpStart = 0;
+      } else {
+        if (!catchUpStart) {
+          // First frame after user stopped — capture starting point so we
+          // ease back to the synced position instead of snapping.
+          catchUpStart = Date.now();
+          catchUpFrom = grid.scrollLeft;
+        }
+        const elapsed = Date.now() - catchUpStart;
+        let target;
+        if (elapsed < catchUpDuration) {
+          // Smooth interpolation back to the synced position. Eases out
+          // (decelerating) for a natural settling feel.
+          const t = elapsed / catchUpDuration;
+          const eased = 1 - Math.pow(1 - t, 3);
+          // Find shortest path around the loop (could be either direction)
+          let delta = timeBased - catchUpFrom;
+          if (delta > halfWidth / 2) delta -= halfWidth;
+          else if (delta < -halfWidth / 2) delta += halfWidth;
+          target = catchUpFrom + delta * eased;
+        } else {
+          // Catch-up complete — locked to the synced position
+          target = timeBased;
+        }
+        target = ((target % halfWidth) + halfWidth) % halfWidth;
+        grid.scrollLeft = target;
+        lastWriteValue = target;
       }
-      track.style.transform = `translateX(${-_marqueeOffset}px)`;
     }
     _marqueeRAF = requestAnimationFrame(tick);
   };
@@ -3943,6 +5033,119 @@ function closeAllModals() {
 // ============================================================
 // PROFILE VIEW
 // ============================================================
+// ============================================================
+// PROFILE STATS (views + likes)
+// ============================================================
+// Each visitor (logged in or not) gets a stable random ID stored in
+// localStorage that we use as the like fingerprint. Logged-in users
+// supplement with their username so they can't unlike-and-like-again
+// from a different browser. Server enforces uniqueness.
+function getVisitorFingerprint() {
+  let fp = '';
+  try {
+    fp = localStorage.getItem('fangtasia_fp') || '';
+    if (!fp) {
+      // 16 random bytes as hex
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      fp = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('fangtasia_fp', fp);
+    }
+  } catch {
+    // localStorage might be unavailable (private browsing). Fall back to a
+    // session-scoped random ID — they'll be able to like multiple times
+    // across page loads in private mode, which is fine.
+    fp = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+  // If logged in, prefix with username so logged-in identity is the leading
+  // factor (not just the device).
+  if (CURRENT_USER && CURRENT_USER.username) {
+    return `u:${CURRENT_USER.username}:${fp}`;
+  }
+  return `g:${fp}`;
+}
+
+function renderProfileStats(f) {
+  const vc = $('pvViewCount');
+  const lc = $('pvLikeCount');
+  if (vc) vc.textContent = formatStatNumber(f.view_count || 0);
+  if (lc) lc.textContent = formatStatNumber(f.like_count || 0);
+  const btn = $('pvLikeBtn');
+  if (btn) {
+    btn.classList.remove('liked', 'just-liked');
+    btn.dataset.username = f.username;
+  }
+}
+
+function formatStatNumber(n) {
+  n = Number(n) || 0;
+  if (n < 1000) return String(n);
+  if (n < 10000) return (n / 1000).toFixed(1) + 'k';
+  if (n < 1000000) return Math.round(n / 1000) + 'k';
+  return (n / 1000000).toFixed(1) + 'm';
+}
+
+// Increment view count once per session per profile so refreshes don't inflate
+async function bumpProfileViewIfNeeded(username) {
+  const key = 'fangtasia_viewed_' + username;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {}
+  try {
+    await rpc('bump_profile_view', { p_username: username });
+    // Refresh the local cached friend so subsequent renders show new count
+    const f = ALL_FRIENDS.find(x => x.username === username);
+    if (f) {
+      f.view_count = (Number(f.view_count) || 0) + 1;
+      const vc = $('pvViewCount');
+      if (vc && CURRENT_VIEW === username) vc.textContent = formatStatNumber(f.view_count);
+    }
+  } catch {}
+}
+
+async function refreshLikeStateFor(username) {
+  const fp = getVisitorFingerprint();
+  try {
+    const result = await rpc('check_profile_like', { p_username: username, p_fingerprint: fp });
+    const btn = $('pvLikeBtn');
+    if (btn && CURRENT_VIEW === username) {
+      btn.classList.toggle('liked', !!(result && result.liked));
+    }
+  } catch {}
+}
+
+async function likeCurrentProfile() {
+  if (!CURRENT_VIEW) return;
+  const btn = $('pvLikeBtn');
+  if (!btn || btn.classList.contains('liked')) return; // already liked
+  const username = btn.dataset.username || CURRENT_VIEW;
+  const fp = getVisitorFingerprint();
+  // Optimistic UI: bump count immediately, mark liked, animate
+  const lc = $('pvLikeCount');
+  const f = ALL_FRIENDS.find(x => x.username === username);
+  const optimistic = (Number(f && f.like_count) || 0) + 1;
+  if (lc) lc.textContent = formatStatNumber(optimistic);
+  btn.classList.add('liked', 'just-liked');
+  setTimeout(() => btn.classList.remove('just-liked'), 500);
+  try {
+    const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp });
+    if (result && result.ok && typeof result.count === 'number') {
+      // Trust server's count
+      if (lc && CURRENT_VIEW === username) lc.textContent = formatStatNumber(result.count);
+      if (f) f.like_count = result.count;
+      if (!result.newly_liked) {
+        // Server says they already liked — keep button in liked state
+        btn.classList.add('liked');
+      }
+    }
+  } catch (e) {
+    // On error, roll back optimistic update
+    if (lc) lc.textContent = formatStatNumber(Number(f && f.like_count) || 0);
+    btn.classList.remove('liked');
+  }
+}
+
 function openProfileView(username) {
   const f = ALL_FRIENDS.find(x => x.username === username);
   if (!f) return;
@@ -3988,6 +5191,13 @@ function openProfileView(username) {
       invitedEl.style.display = 'none';
     }
   }
+
+  // View + like stats. View count comes from the cached friend data; bump
+  // it (server-side) once per session per profile to avoid double-counts on
+  // refresh. Like button shows the user's current state (already-liked or not).
+  renderProfileStats(f);
+  bumpProfileViewIfNeeded(f.username);
+  refreshLikeStateFor(f.username);
 
   // Drink section
   const drinkSec = $('pvDrinkSection');
@@ -4644,6 +5854,8 @@ function openEditMe() {
   $('emFile').value = '';
   $('emBannerFile').value = '';
   renderDrinkPicker('emDrinkPicker', _pendingDrinkMe, 'me');
+  // Render the user's existing socials into the editor
+  renderSocialsInto('emSocials', Array.isArray(me.socials) ? me.socials : []);
   // Build the share link from the current page URL so it works whether deployed
   // at the root or in a subfolder. When loaded locally as file:// (which only
   // works on the user's own machine), show a placeholder so members don't
@@ -4764,6 +5976,9 @@ async function saveMe() {
   const bio = $('emBio').value.trim();
   const music = $('emMusic').value.trim();
   if (music && !validateUrl(music)) { showError('emError', 'Music URL must start with https://'); return; }
+  // Read socials from the editor; reject any with malformed URLs
+  const socials = readSocialsFrom('emSocials');
+  if (socials.length > 12) { showError('emError', 'Too many social links (max 12)'); return; }
   try {
     const result = await rpc('update_my_profile', {
       p_token: CURRENT_USER.token,
@@ -4772,6 +5987,7 @@ async function saveMe() {
       p_bio: bio,
       p_music: music,
       p_drink: _pendingDrinkMe !== null ? _pendingDrinkMe : null,
+      p_socials: socials,
     });
     if (!result || !result.ok) {
       showError('emError', (result && result.error) || 'Could not save');
@@ -4973,15 +6189,27 @@ function socialRowHtml(s, i) {
       <button class="remove-btn" data-action="remove-social" type="button"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
     </div>`;
 }
-function readSocialsFromEditor() {
+// Render a list of socials into any container (admin uses #mmSocials, the
+// self-edit modal uses #emSocials). The shared helpers below find the parent
+// container automatically when buttons are clicked.
+function renderSocialsInto(containerId, socials) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = (socials || []).map((s, i) => socialRowHtml(s, i)).join('');
+}
+function readSocialsFrom(containerId) {
   const out = [];
-  document.querySelectorAll('#mmSocials .social-row').forEach(row => {
+  const root = document.getElementById(containerId);
+  if (!root) return out;
+  root.querySelectorAll('.social-row').forEach(row => {
     const name = row.querySelector('.social-name').value;
     const url = row.querySelector('.social-url').value.trim();
     if (url && validateUrl(url)) out.push({ name, url });
   });
   return out;
 }
+// Backwards-compatible aliases for the admin editor's existing call sites
+function readSocialsFromEditor() { return readSocialsFrom('mmSocials'); }
 
 async function saveMember() {
   clearMessages();
@@ -5099,6 +6327,7 @@ document.addEventListener('click', (ev) => {
   switch (action) {
     case 'close-modal': closeAllModals(); break;
     case 'view-profile': openProfileView(username); break;
+    case 'like-profile': likeCurrentProfile(); break;
     case 'open-login': openModal('loginModal'); break;
     case 'staff-door': openStaffEntrance(); break;
     case 'do-login': doLogin(); break;
@@ -5137,6 +6366,13 @@ document.addEventListener('click', (ev) => {
     case 'dock-collapse': toggleDockCollapse(); break;
     case 'save-music': saveAmbientMusic(); break;
     case 'music-mode': pickMusicMode(t.dataset.mode); break;
+    case 'open-party': openPartyModal(); break;
+    case 'start-party': startParty(); break;
+    case 'end-party': endParty(); break;
+    case 'leave-party': leaveParty(); break;
+    case 'party-toggle-play': togglePartyPlay(); break;
+    case 'post-party-message': postPartyMessage(); break;
+    case 'show-login': openModal('loginModal'); break;
     case 'pick-drink': pickDrink(t.dataset.drink, t.dataset.target); break;
     case 'open-recommendation': {
       const u = $('bartenderRec') && $('bartenderRec').dataset.username;
@@ -5146,7 +6382,12 @@ document.addEventListener('click', (ev) => {
     case 'save-member': saveMember(); break;
     case 'do-setup': doSetup(); break;
     case 'add-social': {
-      const wrap = $('mmSocials');
+      // The button has data-target on it pointing to the container ID
+      // ('mmSocials' for admin editor, 'emSocials' for self-edit modal).
+      // Falls back to mmSocials for backwards compatibility.
+      const targetId = t.dataset.target || 'mmSocials';
+      const wrap = $(targetId);
+      if (!wrap) break;
       const nextIdx = wrap.children.length;
       wrap.insertAdjacentHTML('beforeend', socialRowHtml({ name: 'Twitter', url: '' }, nextIdx));
       break;
@@ -5275,6 +6516,8 @@ async function init() {
   await loadRecommendation();
   // Load ambient music settings so the dock appears for guests
   await loadAmbientMusic();
+  // Load any active listening party so the badge can render
+  await loadParty();
   renderTables();
   // Pull the current decree (if any) and overwrite the footer house rules
   applyDecreeToFooter();
