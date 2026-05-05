@@ -4492,8 +4492,8 @@ function startPartyDriftCheck() {
 
 // Subscribe to realtime updates on the listening_party row + chat
 function startPartyRealtime() {
-  if (!supabase || _partyChannel) return;
-  _partyChannel = supabase
+  if (!_sb || _partyChannel) return;
+  _partyChannel = _sb
     .channel('listening-party')
     .on('postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'listening_party' },
@@ -4529,7 +4529,7 @@ function startPartyRealtime() {
 
 function stopPartyRealtime() {
   if (_partyChannel) {
-    try { supabase.removeChannel(_partyChannel); } catch {}
+    try { if (_sb) _sb.removeChannel(_partyChannel); } catch {}
     _partyChannel = null;
   }
   if (_partyPollTimer) { clearInterval(_partyPollTimer); _partyPollTimer = null; }
@@ -4665,7 +4665,7 @@ function closePartyModal() {
 // Periodic global check: even when modal is closed, refresh party state every
 // 30s so the auth-bar badge stays accurate.
 setInterval(async () => {
-  if (!supabase) return;
+  if (!_sb) return;
   await loadParty();
   renderPartyBadge();
 }, 30000);
