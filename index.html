@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-04-1">
+<meta name="build-version" content="2026-05-06-1">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -109,6 +109,22 @@ body::after {
 @keyframes heartbeat {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.75; }
+}
+
+/* ============ REDUCED-MOTION OVERRIDE ============ */
+/* Honor the OS-level "reduce motion" preference. This both helps users with
+   vestibular issues and acts as a free perf bypass for low-end hardware
+   (laptops on battery saver, older phones). Kills the heaviest animations:
+   the eight-layer text-shadow flicker, the auto-scrolling marquee (handled
+   in JS by checking matchMedia below), embers, fog, heartbeat, and any
+   curtain/banner sweeps. The site stays fully functional, just static. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .embers, .fog { display: none !important; }
 }
 
 /* ============ ROOM ARCHITECTURE ============ */
@@ -1032,13 +1048,19 @@ body::after {
     0 0 150px var(--neon);
   animation: flicker 4s infinite;
   margin-bottom: 24px;
+  /* Promote to its own GPU layer so the heavy text-shadow only rasterizes once
+     instead of being repainted on every flicker tick. Without this hint the
+     sign repaints constantly and drags the marquee/page with it. */
+  will-change: opacity;
+  transform: translateZ(0);
 }
+/* Animate opacity only — keeping the text-shadow stable means the rasterized
+   layer is reused on every frame. The previous version swapped text-shadow on
+   and off, which forced a fresh paint of all eight blur layers (up to 150px
+   radius) on every keyframe — extremely expensive on weaker hardware. */
 @keyframes flicker {
-  0%, 18%, 22%, 25%, 53%, 57%, 100% {
-    text-shadow: 0 0 4px #fff, 0 0 11px #fff, 0 0 19px #fff, 0 0 40px var(--neon), 0 0 80px var(--neon), 0 0 90px var(--neon), 0 0 100px var(--neon), 0 0 150px var(--neon);
-    opacity: 1;
-  }
-  20%, 24%, 55% { text-shadow: none; opacity: 0.4; }
+  0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.4; }
 }
 .sign-tagline {
   font-family: 'Cinzel', serif;
@@ -1113,6 +1135,10 @@ body::after {
   /* Allow JS-driven scroll snap to feel smoother (but no native snap which
      would fight with our scrollLeft writes) */
   scroll-behavior: auto;
+  /* Isolate paint so re-rasters elsewhere on the page (the sign, modals,
+     embers) don't bleed cost into this scrolling area. The marquee writes
+     scrollLeft every frame; pinning paint here keeps that work cheap. */
+  contain: layout paint;
 }
 .tables-grid::-webkit-scrollbar { display: none; }
 .tables-track {
@@ -1120,6 +1146,10 @@ body::after {
   display: flex;
   gap: 40px;
   width: max-content;
+  /* Hint that this layer's transform will animate — promotes to GPU and
+     avoids repaints when the parent's scrollLeft shifts. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 .tables-track > .table {
   flex: 0 0 220px;
@@ -2878,6 +2908,9 @@ body.is-admin .neon-sign .f-trigger:hover {
     <symbol id="s-website" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 12h18" stroke="currentColor" stroke-width="1.4"/></symbol>
     <symbol id="s-email" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 7l9 7 9-7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
     <symbol id="s-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <!-- watchpeopledie.tv: a CRT screen with rabbit-ear antennae and a small play arrow.
+         Generic "video site" iconography rather than anything specific to the brand. -->
+    <symbol id="s-wpd" viewBox="0 0 24 24"><path d="M8 3l4 3 4-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="3" y="6" width="18" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 10.5l3.5 2-3.5 2z" fill="currentColor"/></symbol>
     <!-- Music player icons -->
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z" fill="currentColor"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></symbol>
@@ -3959,7 +3992,7 @@ let _loginLockoutUntil = 0;
 let _fClicks = 0;
 let _fClickTimer = null;
 
-const SOCIAL_OPTIONS = ['Twitter','Instagram','Discord','SoundCloud','Spotify','YouTube','TikTok','GitHub','Last.fm','Bluesky','Mastodon','Website','Email'];
+const SOCIAL_OPTIONS = ['Twitter','Instagram','Discord','SoundCloud','Spotify','YouTube','TikTok','GitHub','Last.fm','Bluesky','Mastodon','WatchPeopleDie','Website','Email'];
 
 // Map social name → SVG symbol id. Falls back to a generic link icon.
 function getSocialIcon(name) {
@@ -3968,6 +4001,7 @@ function getSocialIcon(name) {
     'soundcloud': 's-soundcloud', 'spotify': 's-spotify', 'youtube': 's-youtube',
     'tiktok': 's-tiktok', 'github': 's-github', 'last.fm': 's-lastfm',
     'lastfm': 's-lastfm', 'bluesky': 's-bluesky', 'mastodon': 's-mastodon',
+    'watchpeopledie': 's-wpd', 'wpd': 's-wpd',
     'website': 's-website', 'email': 's-email',
   };
   return map[(name || '').toLowerCase()] || 's-link';
@@ -4621,9 +4655,14 @@ function buildPartyPlayer() {
     const id = extractYouTubeId(url);
     if (!id) return;
     const startSec = Math.max(0, Math.floor(CURRENT_PARTY.live_position || 0));
+    // YouTube IFrame API requires `origin` whenever `enablejsapi=1` is used —
+    // without it, modern browsers refuse the postMessage handshake and the
+    // player can render as a black/empty iframe even when the video itself is
+    // valid. Pass our current origin (falls back to '*' for file:// previews).
+    const ytOrigin = encodeURIComponent(window.location.origin || '*');
     host.innerHTML = `
       <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
-        <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=0&controls=${amHost ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1&rel=0&fs=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>
+        <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&origin=${ytOrigin}&autoplay=0&controls=${amHost ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1&rel=0&fs=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>
         ${amHost ? '' : '<div class="party-input-block" id="partyInputBlock" aria-hidden="true"></div>'}
       </div>`;
     if (!window.YT || !window.YT.Player) {
@@ -4848,7 +4887,9 @@ function startPartyRealtime() {
 
   // SEPARATE poll for chat — short interval as a backup if Realtime drops
   // any inserts. Dedup by id in appendPartyMessageIfNew so re-fetching
-  // doesn't double-render.
+  // doesn't double-render. Tightened from 3s → 1.5s so messages appear
+  // quickly even when Realtime is misbehaving (e.g., publication not
+  // configured, or RLS dropping events). Each poll is one cheap RPC.
   if (_partyChatPollTimer) clearInterval(_partyChatPollTimer);
   _partyChatPollTimer = setInterval(async () => {
     if (!CURRENT_PARTY) return;
@@ -4858,7 +4899,7 @@ function startPartyRealtime() {
         rows.forEach(appendPartyMessageIfNew);
       }
     } catch {}
-  }, 3000);
+  }, 1500);
 }
 
 // Append a message to the chat only if we haven't already rendered it.
@@ -5038,6 +5079,13 @@ function startMarquee() {
   // Cancel any previous loop (in case renderTables re-runs)
   if (_marqueeRAF) cancelAnimationFrame(_marqueeRAF);
 
+  // Honor OS-level reduced-motion preference. The cards stay scroll/swipe-able
+  // manually — we just skip the auto-drift. Saves a per-frame scrollLeft write
+  // and a Date.now() on every animation frame for users who opted out of motion.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
   // Two pause modes:
   //   - Hover/touch: pause and resume from current position when they leave
   //   - Manual scroll/drag/wheel: pause for 3 seconds after last interaction,
@@ -5185,7 +5233,10 @@ function renderMusicDock() {
     if (!id) { dock.classList.remove('active'); return; }
     // Use the YouTube IFrame API. Start muted so browser autoplay rules allow it
     // to begin playing on its own. Visitor unmutes with the volume button.
-    host.innerHTML = `<iframe id="dockYTFrame" src="https://www.youtube.com/embed/${id}?enablejsapi=1&playlist=${id}&loop=1&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
+    // The `origin` parameter is required when enablejsapi=1 — without it the
+    // iframe can render as a black box on strict browsers / Cloudflare setups.
+    const dockOrigin = encodeURIComponent(window.location.origin || '*');
+    host.innerHTML = `<iframe id="dockYTFrame" src="https://www.youtube.com/embed/${id}?enablejsapi=1&origin=${dockOrigin}&playlist=${id}&loop=1&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
     _dockIsMuted = true; // Reflect the mute=1 we passed to the iframe
     // Ensure the YT API script is loaded once
     if (!window.YT || !window.YT.Player) {
@@ -6886,13 +6937,26 @@ function showUpdateBanner() {
 // Run a check shortly after load and every 5 minutes thereafter
 setTimeout(checkForNewDeploy, 30000);
 setInterval(checkForNewDeploy, 5 * 60 * 1000);
-// Also check when the tab regains focus (came back from another tab)
+// Also check when the tab regains focus (came back from another tab) — but
+// throttle so a user repeatedly alt-tabbing doesn't fire a 250KB fetch every
+// few seconds. 60-second floor is plenty for "did a new build land while I
+// was away" while keeping tab-flipping cheap.
+let _lastDeployCheck = Date.now();
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) checkForNewDeploy();
+  if (document.hidden) return;
+  if (Date.now() - _lastDeployCheck < 60 * 1000) return;
+  _lastDeployCheck = Date.now();
+  checkForNewDeploy();
 });
 
 function spawnEmbers() {
-  // Despite the legacy name, these are now slow gold dust motes drifting upward
+  // Despite the legacy name, these are now slow gold dust motes drifting upward.
+  // CSS hides the .embers container under prefers-reduced-motion, but we also
+  // skip the DOM creation entirely so we don't waste 18 elements + their
+  // animation timers on machines that won't render them.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
   const c = $('embers');
   for (let i = 0; i < 18; i++) {
     const e = document.createElement('div');
@@ -6940,11 +7004,23 @@ async function init() {
     });
   }
   // Refresh members data every 60 seconds so OTHER members' last-seen and
-  // online statuses update without a page reload.
+  // online statuses update without a page reload. We compare a signature of
+  // visually-significant fields and only re-render the carousel when something
+  // actually changed — otherwise we'd blow away the marquee position and
+  // trigger a layout reflow every minute, causing visible chop on weaker
+  // hardware (and especially noticeable for guests, who don't have any other
+  // reason for the page to be doing work).
+  function _tablesSignature() {
+    return ALL_FRIENDS.map(f =>
+      `${f.username}|${f.display_title || ''}|${f.status || ''}|${f.is_featured ? 1 : 0}|${f.sort_order || 0}|${(f.avatar || '').length}|${(f.banner || '').length}|${isGhost(f) ? 1 : 0}`
+    ).join('||');
+  }
   setInterval(async () => {
     try {
+      const before = _tablesSignature();
       await loadAllFriends();
-      renderTables();
+      const after = _tablesSignature();
+      if (before !== after) renderTables();
     } catch {}
   }, 60 * 1000);
   // Don't auto-open the setup modal — the pulsing keyhole will guide first-time setup
