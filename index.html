@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-06-2">
+<meta name="build-version" content="2026-05-07-2">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -569,6 +569,24 @@ body::after {
   background: rgba(20,5,5,0.85);
   color: var(--bone);
   border-color: var(--blood-bright);
+}
+/* Small caption shown on the no-API fallback iframe so members understand
+   why playback isn't synced. Sits at the bottom-left, semi-transparent. */
+.party-fallback-note {
+  position: absolute;
+  bottom: 8px; left: 8px;
+  z-index: 6;
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.55);
+  color: rgba(232,212,184,0.65);
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border: 1px solid rgba(212,165,116,0.2);
+  border-radius: 1px;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
 }
 .party-stage-empty {
   display: flex; flex-direction: column;
@@ -2765,6 +2783,45 @@ body.is-admin .neon-sign .f-trigger:hover {
 .social-row { display: flex; gap: 8px; align-items: center; }
 .social-row .form-input { flex: 1; }
 .social-row select.form-select { width: 130px; flex-shrink: 0; }
+/* Drag-to-reorder handle. Sits at the start of each row. The grab cursor
+   communicates draggability; touch-action:none stops the browser from
+   intercepting touch-drag for page-scroll while a member is reordering. */
+.social-row .social-drag-handle {
+  width: 28px; height: 32px;
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.18);
+  color: rgba(212,165,116,0.45);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  cursor: grab;
+  padding: 0;
+  touch-action: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.social-row .social-drag-handle:hover {
+  color: var(--gold);
+  border-color: rgba(212,165,116,0.4);
+  background: rgba(212,165,116,0.05);
+}
+.social-row .social-drag-handle:active { cursor: grabbing; }
+.social-row .social-drag-handle .icon { width: 14px; height: 14px; }
+/* The dragged row floats above its neighbors with a subtle lift. The other
+   rows remain in normal flow — we only translateY the dragged one and
+   reorder DOM as it crosses sibling midpoints. */
+.social-row.dragging {
+  position: relative;
+  z-index: 10;
+  background: var(--velvet);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.6), 0 0 0 1px var(--blood-bright);
+  border-radius: 2px;
+  cursor: grabbing;
+}
+.social-row.dragging .social-drag-handle {
+  color: var(--bone);
+  border-color: var(--blood-bright);
+  background: rgba(196,30,30,0.15);
+}
 .social-row .remove-btn {
   width: 32px; height: 32px;
   background: transparent;
@@ -3015,6 +3072,10 @@ body.is-admin .neon-sign .f-trigger:hover {
     <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></symbol>
+    <!-- Six-dots drag-handle. Conventional shape that reads as "grab and move"
+         across cultures and platforms. Used to let members reorder their
+         social links by priority on their profile. -->
+    <symbol id="i-drag" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></symbol>
     <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
@@ -4402,10 +4463,16 @@ let _partyMessages = [];
 let _partyAttendees = [];
 let _partyLocalPlaying = false;
 let _partyApplyingRemote = false;
-// YT iframe load watchdog: if the player never fires onReady within ~8s,
-// _partyYTReady stays false and the watchdog swaps in an error fallback.
+// YT iframe load watchdog: if the player never fires onReady within ~7s,
+// _partyYTReady stays false and the watchdog swaps in the plain-iframe
+// fallback so the video at least plays.
 let _partyYTLoadTimeout = null;
 let _partyYTReady = false;
+// Pending player config — captured at buildPartyPlayer() time and consumed by
+// initPartyYTPlayer() once the YT API finishes loading.
+let _partyYTPendingId = null;
+let _partyYTPendingStart = 0;
+let _partyYTAmHost = false;
 
 // Identify the "owner's party" — the one we surface on the homepage banner
 function findOwnerParty() {
@@ -4707,46 +4774,73 @@ function buildPartyPlayer() {
       return;
     }
     const startSec = Math.max(0, Math.floor(CURRENT_PARTY.live_position || 0));
-    // YouTube IFrame API requires `origin` whenever `enablejsapi=1` is used —
-    // without it, modern browsers refuse the postMessage handshake and the
-    // player can render as a black/empty iframe even when the video itself is
-    // valid. Pass our current origin (falls back to '*' for file:// previews).
-    const ytOrigin = encodeURIComponent(window.location.origin || '*');
     const watchUrl = `https://www.youtube.com/watch?v=${id}` + (startSec ? `&t=${startSec}` : '');
+
+    // Render a placeholder DIV (not an iframe!) and let the YouTube API
+    // create the iframe itself via `new YT.Player(divId, {videoId, ...})`.
+    // The previous "iframe-then-attach" pattern was unreliable: if the
+    // pre-created iframe wasn't fully loaded by the time we called
+    // `new YT.Player(iframeEl, ...)`, onReady would never fire and members
+    // were stuck looking at a black box. The canonical pattern below has
+    // YouTube build the iframe with the right config, in the right state.
     host.innerHTML = `
       <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
-        <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&origin=${ytOrigin}&autoplay=0&controls=${amHost ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1&rel=0&fs=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>
+        <div id="partyYTFrame" style="width:100%; height:100%;"></div>
         ${amHost ? '' : '<div class="party-input-block" id="partyInputBlock" aria-hidden="true"></div>'}
         <a class="party-yt-escape" href="${escapeAttr(watchUrl)}" target="_blank" rel="noopener noreferrer" title="Open on YouTube">↗</a>
       </div>`;
-    if (!window.YT || !window.YT.Player) {
+
+    // Stash the params we'll need when the API is ready (or for the fallback)
+    _partyYTPendingId = id;
+    _partyYTPendingStart = startSec;
+    _partyYTAmHost = amHost;
+
+    // Load the YT IFrame API if it's not already loaded. We support being
+    // called repeatedly: if the API script is in flight, our callback will
+    // chain after any prior callback. If the API is already loaded, we go
+    // straight to constructing the player.
+    if (window.YT && window.YT.Player) {
+      console.log('[party] YT API already loaded, constructing player');
+      setTimeout(initPartyYTPlayer, 50);
+    } else {
+      console.log('[party] requesting YT IFrame API');
       if (!document.getElementById('ytApiScript')) {
         const tag = document.createElement('script');
-        tag.id = 'ytApiScript'; tag.src = 'https://www.youtube.com/iframe_api';
+        tag.id = 'ytApiScript';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.onerror = () => {
+          console.warn('[party] YT API script failed to load — falling back to plain iframe');
+          fallbackToPlainYTIframe(id, startSec, amHost, watchUrl);
+        };
         document.head.appendChild(tag);
       }
+      // Chain our callback after any existing one (we may share the API with
+      // the music dock, which sets its own onYouTubeIframeAPIReady).
       const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => { if (prev) prev(); initPartyYTPlayer(); };
-    } else {
-      setTimeout(initPartyYTPlayer, 100);
+      window.onYouTubeIframeAPIReady = () => {
+        try { if (prev) prev(); } catch (e) { console.warn('[party] prior YT-ready callback threw', e); }
+        initPartyYTPlayer();
+      };
+      // API-load watchdog: if the script never finishes (network blocked,
+      // CSP, certain extensions), bail out to a plain iframe after 4s so the
+      // video at least plays — sync won't work but everyone can watch.
+      setTimeout(() => {
+        if (window.YT && window.YT.Player) return;
+        console.warn('[party] YT API never loaded after 4s — falling back to plain iframe');
+        fallbackToPlainYTIframe(id, startSec, amHost, watchUrl);
+      }, 4000);
     }
-    // Load timeout: if onReady never fires within ~8s, the iframe is being
-    // blocked (ad blocker, Brave shields, COOP/COEP headers, region/embed
-    // restrictions, deleted video). Replace the empty black box with a clear
-    // explanation + direct YouTube link instead of leaving them staring at it.
+
+    // Player-ready watchdog: even when the API loads, sometimes onReady
+    // never fires (postMessage origin mismatch, COOP/COEP, embed blocked).
+    // After 7s of silence, swap in the plain iframe fallback. Sync is gone
+    // but at least the video plays.
     if (_partyYTLoadTimeout) clearTimeout(_partyYTLoadTimeout);
     _partyYTLoadTimeout = setTimeout(() => {
       if (_partyYTReady) return;
-      // Player never came up. Don't yank the iframe out from under a working
-      // player; only replace if it's still empty.
-      if (!_partyYTPlayer || !_partyYTPlayer.getPlayerState) {
-        showPartyEmbedError(
-          'Video not embedding',
-          'The player never finished loading. This is usually an ad blocker, Brave shields, or a video that has embedding disabled. You can still watch directly on YouTube — chat and sync stay in here.',
-          watchUrl
-        );
-      }
-    }, 8000);
+      console.warn('[party] YT.Player onReady never fired — falling back to plain iframe');
+      fallbackToPlainYTIframe(id, startSec, amHost, watchUrl);
+    }, 7000);
   } else if (url.includes('soundcloud.com')) {
     _partyProvider = 'soundcloud';
     let scUrl = url;
@@ -4764,16 +4858,51 @@ function buildPartyPlayer() {
 
 function initPartyYTPlayer() {
   const frame = document.getElementById('partyYTFrame');
-  if (!frame || !window.YT) return;
+  if (!frame || !window.YT || !window.YT.Player) {
+    console.warn('[party] initPartyYTPlayer called without div or YT API');
+    return;
+  }
+  // Canonical YouTube IFrame API usage: pass the DIV element id and let the
+  // API construct the iframe internally. Way more reliable than the older
+  // "pre-create iframe, then attach" approach — the API builds the iframe
+  // with the right enablejsapi/origin/postMessage wiring in one shot, so
+  // onReady fires consistently.
   _partyYTReady = false;
-  _partyYTPlayer = new YT.Player(frame, {
-    events: {
-      onReady: () => {
-        _partyYTReady = true;
-        if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
-        syncPartyToServer();
-        startPartyDriftCheck();
+  const id = _partyYTPendingId;
+  const startSec = _partyYTPendingStart || 0;
+  const amHost = !!_partyYTAmHost;
+  if (!id) { console.warn('[party] no pending video id'); return; }
+  console.log('[party] constructing YT.Player for id', id, 'start', startSec, 'host?', amHost);
+  try {
+    _partyYTPlayer = new YT.Player('partyYTFrame', {
+      videoId: id,
+      width: '100%',
+      height: '100%',
+      // youtube-nocookie.com would be ideal here but YT.Player doesn't expose
+      // a host option for it in v3; we set host below as a string and the API
+      // honors it.
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: {
+        autoplay: 0,
+        controls: amHost ? 1 : 0,
+        modestbranding: 1,
+        start: startSec,
+        playsinline: 1,
+        rel: 0,
+        fs: 0,
+        iv_load_policy: 3,
+        disablekb: amHost ? 0 : 1,
+        enablejsapi: 1,
+        origin: window.location.origin,
       },
+      events: {
+        onReady: () => {
+          _partyYTReady = true;
+          if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
+          console.log('[party] YT player ready');
+          syncPartyToServer();
+          startPartyDriftCheck();
+        },
       // Surface "video unavailable / embed blocked / private / removed"
       // (YouTube fires onError with codes 2, 5, 100, 101, 150). Without this
       // handler the iframe just sits there showing a black square forever.
@@ -4820,8 +4949,49 @@ function initPartyYTPlayer() {
           }
         }
       },
-    },
-  });
+      },
+    });
+  } catch (e) {
+    console.error('[party] YT.Player constructor threw:', e);
+    // Constructor itself failed — go straight to the plain-iframe fallback.
+    if (_partyYTPendingId) {
+      const watchUrl = `https://www.youtube.com/watch?v=${_partyYTPendingId}` + (startSec ? `&t=${startSec}` : '');
+      fallbackToPlainYTIframe(_partyYTPendingId, startSec, amHost, watchUrl);
+    }
+  }
+}
+
+// Last-resort fallback when the YouTube IFrame API can't be used: render a
+// plain `<iframe src="...youtube.com/embed/ID">` with NO enablejsapi. This
+// gives up host-driven sync (no postMessage control), but the video itself
+// will play normally for everyone — vastly better than a black box.
+//
+// Triggered when:
+//   - the YT API script fails to load (ad blocker, network, CSP)
+//   - YT.Player onReady never fires within 7s (origin/COOP/COEP issues)
+//   - `new YT.Player()` throws
+//
+// Members fall back to manual sync — they'll see a small "host is at 1:23"
+// hint via the existing chat/state stream and can scrub to match.
+function fallbackToPlainYTIframe(id, startSec, amHost, watchUrl) {
+  const host = $('partyPlayer');
+  if (!host || !id) return;
+  // Clear any in-flight watchdogs / API hooks so we don't keep racing.
+  if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
+  _partyYTReady = false;
+  _partyYTPlayer = null;
+  const startParam = startSec ? `&start=${startSec}` : '';
+  // youtube-nocookie.com tends to embed in more environments than youtube.com
+  // (fewer tracking-related blocks, more permissive Cloudflare/COEP behavior).
+  // Falls back to youtube.com if needed via iframe onerror.
+  const src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=0&playsinline=1&rel=0&modestbranding=1${startParam}`;
+  const altSrc = `https://www.youtube.com/embed/${id}?autoplay=0&playsinline=1&rel=0&modestbranding=1${startParam}`;
+  host.innerHTML = `
+    <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
+      <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="${src}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen onerror="this.src='${altSrc}'"></iframe>
+      <a class="party-yt-escape" href="${escapeAttr(watchUrl || ('https://www.youtube.com/watch?v=' + id))}" target="_blank" rel="noopener noreferrer" title="Open on YouTube">↗</a>
+      <div class="party-fallback-note">Sync unavailable here · video plays normally</div>
+    </div>`;
 }
 
 async function broadcastPartyState(state) {
@@ -6691,10 +6861,12 @@ function getActiveStatus() {
 }
 function renderSocialsEditor(socials) {
   $('mmSocials').innerHTML = socials.map((s, i) => socialRowHtml(s, i)).join('');
+  setupSocialsSorting($('mmSocials'));
 }
 function socialRowHtml(s, i) {
   return `
     <div class="social-row" data-idx="${i}">
+      <button class="social-drag-handle" type="button" tabindex="-1" aria-label="Drag to reorder"><svg class="icon icon-sm"><use href="#i-drag"/></svg></button>
       <select class="form-select social-name">
         ${SOCIAL_OPTIONS.map(opt => `<option ${opt === (s.name || '') ? 'selected' : ''}>${opt}</option>`).join('')}
       </select>
@@ -6709,11 +6881,15 @@ function renderSocialsInto(containerId, socials) {
   const el = document.getElementById(containerId);
   if (!el) return;
   el.innerHTML = (socials || []).map((s, i) => socialRowHtml(s, i)).join('');
+  setupSocialsSorting(el);
 }
 function readSocialsFrom(containerId) {
   const out = [];
   const root = document.getElementById(containerId);
   if (!root) return out;
+  // Iterates rows in DOM order — which is exactly the order the member
+  // arranged them via drag. No sort_index column needed; the array order
+  // in the JSONB column IS the priority order.
   root.querySelectorAll('.social-row').forEach(row => {
     const name = row.querySelector('.social-name').value;
     const url = row.querySelector('.social-url').value.trim();
@@ -6723,6 +6899,99 @@ function readSocialsFrom(containerId) {
 }
 // Backwards-compatible aliases for the admin editor's existing call sites
 function readSocialsFromEditor() { return readSocialsFrom('mmSocials'); }
+
+// ---------- Sortable socials (drag to reorder) ----------
+// Members arrange their links by priority. The order they end with becomes
+// the order saved (and rendered on the public profile). Implementation notes:
+//
+//  - Pointer events handle desktop mouse + touch + pen with one code path.
+//  - The listener is delegated on the CONTAINER, so it survives innerHTML
+//    re-renders that happen when modals open/close. We mark the container
+//    with `data-sortable-init=1` to avoid double-binding.
+//  - Reorder is computed from the DRAGGED row's visual center vs each
+//    sibling's natural center. We swap DOM nodes the moment the drag
+//    crosses a midpoint. The `do/while` loop catches fast drags that move
+//    the cursor past multiple rows in a single frame.
+//  - Visual lift: only `transform: translateY()` on the dragged row. We
+//    NEVER touch sibling positions — they stay in normal flow, so layout
+//    always matches the saved order. After each DOM swap the transform is
+//    recomputed so the row stays under the cursor (originTop minus the
+//    new offsetTop, plus cursor delta).
+//  - Drag only initiates from `.social-drag-handle`. The dropdown, URL
+//    input, and remove button keep their normal click behavior — this is
+//    why the handle has its own dedicated element rather than dragging
+//    from anywhere on the row.
+function setupSocialsSorting(container) {
+  if (!container || container.dataset.sortableInit === '1') return;
+  container.dataset.sortableInit = '1';
+
+  container.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.social-drag-handle');
+    if (!handle) return;
+    const row = handle.closest('.social-row');
+    if (!row || row.parentElement !== container) return;
+    // Block default so the browser doesn't text-select / start native D&D
+    e.preventDefault();
+    try { handle.setPointerCapture(e.pointerId); } catch {}
+    row.classList.add('dragging');
+
+    const originY = e.clientY;
+    const originTop = row.offsetTop;
+    const halfH = row.offsetHeight / 2;
+
+    const onMove = (mv) => {
+      const dy = mv.clientY - originY;
+      // Visual center of the dragged row in container-relative coords.
+      // Stable across DOM swaps because it depends only on the original
+      // anchor + cursor delta, not on the row's current offsetTop.
+      const visualCenter = originTop + dy + halfH;
+
+      // Reorder loop: keep swapping while the dragged row's virtual center
+      // is past a neighbor's center. Handles fast cursor moves that cross
+      // multiple rows in one frame.
+      let changed;
+      do {
+        changed = false;
+        const above = row.previousElementSibling;
+        if (above && above.classList.contains('social-row')) {
+          const aboveCenter = above.offsetTop + above.offsetHeight / 2;
+          if (visualCenter < aboveCenter) {
+            container.insertBefore(row, above);
+            changed = true;
+            continue;
+          }
+        }
+        const below = row.nextElementSibling;
+        if (below && below.classList.contains('social-row')) {
+          const belowCenter = below.offsetTop + below.offsetHeight / 2;
+          if (visualCenter > belowCenter) {
+            container.insertBefore(row, below.nextSibling);
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      // After any DOM moves, reapply transform so the row stays where the
+      // cursor expects it. Formula: required-translateY = originTop +
+      // dy − currentOffsetTop  (i.e. compensate for the row's new natural
+      // position). Equivalently:  (originTop − offsetTop) + dy.
+      row.style.transform = `translateY(${(originTop - row.offsetTop) + dy}px)`;
+    };
+
+    const onEnd = () => {
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onEnd);
+      handle.removeEventListener('pointercancel', onEnd);
+      try { handle.releasePointerCapture(e.pointerId); } catch {}
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onEnd);
+    handle.addEventListener('pointercancel', onEnd);
+  });
+}
 
 async function saveMember() {
   clearMessages();
