@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-07-2">
+<meta name="build-version" content="2026-05-07-4">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -662,6 +662,181 @@ body::after {
   border-left: 1px solid rgba(212,165,116,0.2);
   background: rgba(10,3,3,0.5);
 }
+/* The Chat/Queue side panel: replaces the old single .party-chat box.
+   Width matches the previous chat (280px desktop, full-width on mobile). */
+.party-side {
+  width: 280px;
+  display: flex; flex-direction: column;
+  border-left: 1px solid rgba(212,165,116,0.2);
+  background: rgba(10,3,3,0.5);
+}
+.party-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(212,165,116,0.18);
+  background: rgba(20,5,5,0.6);
+}
+.party-tab {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: rgba(232,212,184,0.55);
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  position: relative;
+}
+.party-tab:hover { color: var(--bone); background: rgba(139,0,0,0.1); }
+.party-tab.active {
+  color: var(--bone);
+  background: rgba(139,0,0,0.15);
+  box-shadow: inset 0 -2px 0 var(--blood-bright);
+}
+.party-tab-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  background: var(--blood);
+  color: #fff;
+  border-radius: 9px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+.party-tab-count:empty { display: none; }
+.party-tab-pane {
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.party-tab-pane.hidden { display: none; }
+
+/* QUEUE panel inside the side */
+.party-queue-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 4px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  font-family: 'Cormorant Garamond', serif;
+}
+.party-queue-empty {
+  color: rgba(232,212,184,0.5);
+  font-style: italic;
+  font-size: 13px;
+  padding: 16px 4px;
+  text-align: center;
+}
+.party-queue-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(20,5,5,0.5);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 2px;
+  font-size: 13px;
+}
+.party-queue-item .qi-text {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.party-queue-item .qi-link {
+  color: var(--bone);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.party-queue-item .qi-link:hover { color: var(--gold); text-decoration: underline; }
+/* While we're fetching the real title from oEmbed, show the raw URL in a
+   slightly muted/italic state so it's clear this is a placeholder that
+   will resolve. As soon as fetchTrackTitle resolves, the qi-link-loading
+   class is removed and the title fades in (no animation needed — the
+   text just snaps into place once it arrives). */
+.party-queue-item .qi-link.qi-link-loading {
+  color: rgba(232,212,184,0.55);
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+.party-queue-item .qi-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.55);
+}
+.party-queue-item .qi-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.party-queue-item .qi-btn {
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.3);
+  color: rgba(232,212,184,0.7);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+.party-queue-item .qi-btn:hover {
+  background: var(--blood-dark);
+  border-color: var(--blood-bright);
+  color: var(--bone);
+}
+.party-queue-item .qi-btn.qi-play { color: var(--gold); }
+.party-queue-item .qi-btn.qi-play:hover { color: #fff; background: var(--blood); }
+.party-queue-form {
+  padding: 10px;
+  border-top: 1px solid rgba(212,165,116,0.15);
+  display: flex; gap: 8px;
+}
+.party-queue-form input {
+  flex: 1;
+  background: rgba(20,5,5,0.6);
+  border: 1px solid rgba(139,0,0,0.4);
+  color: var(--bone);
+  padding: 8px 10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  border-radius: 2px;
+  outline: none;
+}
+.party-queue-form input:focus { border-color: var(--blood-bright); }
+
+/* Skip button — host only, lives in the party-controls bar between Pause
+   and End Party. Visually a lighter weight than End Party (which is danger
+   red) and slightly more prominent than Pause. */
+.party-controls #partySkipBtn {
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.4);
+  color: var(--gold);
+}
+.party-controls #partySkipBtn:hover {
+  background: var(--blood-dark);
+  color: var(--bone);
+  border-color: var(--blood-bright);
+}
+
+/* Clickable attendee chips (host can click anyone to make them host). The
+   currently-active host gets a subtle gold ring so members can tell at a
+   glance who's running the room. */
+.party-attendees .att.is-clickable { cursor: pointer; }
+.party-attendees .att.is-clickable:hover {
+  border-color: var(--blood-bright);
+  box-shadow: 0 0 0 2px rgba(196,30,30,0.4);
+  transform: translateY(-1px);
+}
+.party-attendees .att.is-host {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212,165,116,0.35);
+}
 .party-chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -709,6 +884,7 @@ body::after {
   .party-modal-content { height: 100vh; width: 100vw; max-width: none; max-height: none; border-radius: 0; }
   .party-body { flex-direction: column; }
   .party-chat { width: 100%; border-left: none; border-top: 1px solid rgba(212,165,116,0.2); height: 240px; }
+  .party-side { width: 100%; border-left: none; border-top: 1px solid rgba(212,165,116,0.2); height: 280px; }
   .party-stage { min-height: 240px; }
 }
 
@@ -4249,6 +4425,10 @@ async function fileToBannerBase64(file, width = 900, height = 300, quality = 0.8
 function initSupabase() {
   if (!SUPABASE_URL || SUPABASE_URL.includes('PASTE_YOUR') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('PASTE_YOUR')) return false;
   _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Cache on window so the `pagehide` cleanup handler (which runs outside
+  // any function scope) can fire a keepalive fetch to leave_listening_party.
+  window._sbUrl = SUPABASE_URL;
+  window._sbAnonKey = SUPABASE_ANON_KEY;
   return true;
 }
 
@@ -4459,10 +4639,21 @@ let _partyChatPollTimer = null;
 let _partyHeartbeatTimer = null;
 let _partyDriftTimer = null;
 let _partyDirectoryTimer = null;
+// Polling backups for attendees & queue. Realtime is the primary source —
+// these only fire as insurance against dropped events / publication being
+// misconfigured.
+let _partyAttendeesPollTimer = null;
+let _partyQueuePollTimer = null;
 let _partyMessages = [];
 let _partyAttendees = [];
+let _partyQueue = [];
+let _partyActiveTab = 'chat'; // which right-panel tab is active: 'chat' | 'queue'
 let _partyLocalPlaying = false;
 let _partyApplyingRemote = false;
+// One-shot guard for auto-advance: when a track ends and we hand off to
+// the next queue item, ignore subsequent ENDED events for ~1.5s so the
+// brief flapping some videos do near the boundary doesn't double-skip.
+let _partyAutoAdvancing = false;
 // YT iframe load watchdog: if the player never fires onReady within ~7s,
 // _partyYTReady stays false and the watchdog swaps in the plain-iframe
 // fallback so the video at least plays.
@@ -4644,6 +4835,19 @@ function startPartyDirectoryRealtime() {
         }
       })
     .subscribe();
+  // Polling backup: refresh the directory every 4s while subscribed. Even
+  // if Realtime is mis-configured (e.g. listening_party not in the
+  // supabase_realtime publication), members will see new parties show up
+  // in the menu within a few seconds. Cheap RPC.
+  if (_partyDirectoryTimer) clearInterval(_partyDirectoryTimer);
+  _partyDirectoryTimer = setInterval(async () => {
+    await loadActiveParties();
+    renderPartyBadge();
+    // Only re-render the menu if it's open AND we're not already in a room
+    if ($('partyModal') && $('partyModal').classList.contains('active') && !CURRENT_PARTY) {
+      openPartyMenu();
+    }
+  }, 4000);
 }
 
 function stopPartyDirectoryRealtime() {
@@ -4651,7 +4855,43 @@ function stopPartyDirectoryRealtime() {
     try { _sb.removeChannel(_partyDirectoryChannel); } catch {}
     _partyDirectoryChannel = null;
   }
+  if (_partyDirectoryTimer) { clearInterval(_partyDirectoryTimer); _partyDirectoryTimer = null; }
 }
+
+// Tab-close / navigate-away cleanup. The browser fires `pagehide` reliably
+// (more reliable than `beforeunload` on mobile) when the user closes the
+// tab, navigates elsewhere, or the page is frozen by the OS. We use
+// sendBeacon so the leave-RPC actually goes out — synchronous fetch isn't
+// allowed in unload handlers anymore.
+window.addEventListener('pagehide', () => {
+  if (!CURRENT_USER || !CURRENT_PARTY) return;
+  try {
+    const url = (window._sbUrl || '') + '/rest/v1/rpc/leave_listening_party';
+    const headers = {
+      type: 'application/json',
+    };
+    const body = JSON.stringify({
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+    });
+    // sendBeacon doesn't support custom headers, so we attach the apikey
+    // and authorization via URL query… actually Supabase's RPC requires
+    // headers. Best-effort: try fetch with keepalive instead, which DOES
+    // honor headers and is allowed during unload.
+    if (window._sbUrl && window._sbAnonKey) {
+      fetch(url, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': window._sbAnonKey,
+          'Authorization': 'Bearer ' + window._sbAnonKey,
+        },
+        body,
+      });
+    }
+  } catch {}
+});
 
 // =================================================================
 // JOINING / VIEWING A SPECIFIC ROOM
@@ -4671,11 +4911,16 @@ async function openPartyById(partyId) {
     return;
   }
   CURRENT_PARTY = party;
+  // Reset to Chat tab whenever joining a fresh room (not on internal
+  // re-renders — those preserve _partyActiveTab).
+  _partyActiveTab = 'chat';
+  _partyQueue = [];
   renderPartyUI();
   openModal('partyModal');
   try { await rpc('join_listening_party', { p_token: CURRENT_USER.token, p_party_id: partyId }); } catch {}
   await loadPartyMessages();
   await loadPartyAttendees();
+  await loadPartyQueue();
   startPartyRealtime();
   startPartyHeartbeat();
   if (_dockYTPlayer && _dockYTPlayer.mute) _dockYTPlayer.mute();
@@ -4685,6 +4930,9 @@ function renderPartyUI() {
   const content = $('partyContent');
   if (!content || !CURRENT_PARTY) return;
   const isHost = isPartyHost();
+  // Default to Chat tab on first render of a fresh room. Preserve the active
+  // tab across UI re-renders triggered by host change / state updates.
+  const activeTab = (_partyActiveTab === 'queue') ? 'queue' : 'chat';
   content.innerHTML = `
     <div class="party-modal-content">
       <div class="party-header">
@@ -4703,25 +4951,55 @@ function renderPartyUI() {
             <span class="timecode" id="partyTimecode">0:00</span>
             <span class="spacer"></span>
             ${isHost ? `<button data-action="party-toggle-play" id="partyPlayBtn">Pause</button>
+                        <button data-action="party-skip" id="partySkipBtn" title="Play next from queue">Skip ›</button>
                         <button class="danger" data-action="end-party">End Party</button>`
                     : '<button data-action="leave-party">Leave</button>'}
           </div>
         </div>
-        <div class="party-chat">
-          <div class="party-chat-messages" id="partyChatMessages"></div>
-          <div class="party-chat-form">
-            <input type="text" id="partyChatInput" placeholder="Say something..." maxlength="500">
-            <button class="btn btn-primary btn-sm" data-action="post-party-message"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+        <div class="party-side">
+          <div class="party-tabs">
+            <button class="party-tab ${activeTab === 'chat' ? 'active' : ''}" data-action="party-tab" data-tab="chat">Chat</button>
+            <button class="party-tab ${activeTab === 'queue' ? 'active' : ''}" data-action="party-tab" data-tab="queue">Queue <span class="party-tab-count" id="partyQueueCount"></span></button>
+          </div>
+          <div class="party-tab-pane ${activeTab === 'chat' ? '' : 'hidden'}" id="partyTabChat">
+            <div class="party-chat-messages" id="partyChatMessages"></div>
+            <div class="party-chat-form">
+              <input type="text" id="partyChatInput" placeholder="Say something..." maxlength="500">
+              <button class="btn btn-primary btn-sm" data-action="post-party-message"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+            </div>
+          </div>
+          <div class="party-tab-pane ${activeTab === 'queue' ? '' : 'hidden'}" id="partyTabQueue">
+            <div class="party-queue-list" id="partyQueueList"></div>
+            <div class="party-queue-form">
+              <input type="text" id="partyQueueInput" placeholder="YouTube or SoundCloud URL…" maxlength="500">
+              <button class="btn btn-primary btn-sm" data-action="suggest-party-track" title="Suggest"><svg class="icon icon-sm"><use href="#i-plus"/></svg></button>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
 
   buildPartyPlayer();
-  const input = $('partyChatInput');
-  if (input) {
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') postPartyMessage(); });
-  }
+  // Re-render whatever lists we already have so the user doesn't see a flash
+  // of empty state while the next poll runs.
+  renderPartyAttendees();
+  renderPartyMessages();
+  renderPartyQueue();
+
+  const chatInput = $('partyChatInput');
+  if (chatInput) chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') postPartyMessage(); });
+  const queueInput = $('partyQueueInput');
+  if (queueInput) queueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') suggestPartyTrack(); });
+}
+
+// Switch the right-panel tab. Pure DOM toggle — no re-render needed.
+function setPartyTab(tab) {
+  if (tab !== 'chat' && tab !== 'queue') return;
+  _partyActiveTab = tab;
+  document.querySelectorAll('.party-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  const chat = $('partyTabChat'); const queue = $('partyTabQueue');
+  if (chat) chat.classList.toggle('hidden', tab !== 'chat');
+  if (queue) queue.classList.toggle('hidden', tab !== 'queue');
 }
 
 function buildPartyPlayer() {
@@ -4936,6 +5214,22 @@ function initPartyYTPlayer() {
           } else if (e.data === YT.PlayerState.PAUSED) {
             _partyLocalPlaying = false;
             broadcastPartyState('paused');
+          } else if (e.data === YT.PlayerState.ENDED) {
+            // Track finished. If there's a queued item, auto-advance so the
+            // room stays alive without the host needing to mash Skip every
+            // 3 minutes. If queue is empty, leave the player parked at the
+            // end — the host can paste a new URL via the queue or end the
+            // party. Guard with a one-shot flag so we don't double-fire on
+            // the brief BUFFERING→ENDED transitions some videos emit.
+            _partyLocalPlaying = false;
+            if (!_partyAutoAdvancing && _partyQueue && _partyQueue.length > 0) {
+              _partyAutoAdvancing = true;
+              skipPartyTrack().finally(() => {
+                // Allow re-trigger on the NEXT track's end. Small delay so
+                // a flapping ENDED doesn't double-skip.
+                setTimeout(() => { _partyAutoAdvancing = false; }, 1500);
+              });
+            }
           }
           const btn = $('partyPlayBtn');
           if (btn) btn.textContent = _partyLocalPlaying ? 'Pause' : 'Play';
@@ -5108,8 +5402,17 @@ function startPartyRealtime() {
           closePartyModal();
           return;
         }
+        // Detect changes that require a UI re-render (vs just a sync nudge):
+        //   - host changed → controls swap (host bar / Skip button / "make host")
+        //   - url changed  → player must rebuild for the new video
+        const hostChanged = CURRENT_PARTY && updated.host !== CURRENT_PARTY.host;
+        const urlChanged  = CURRENT_PARTY && updated.url  !== CURRENT_PARTY.url;
         CURRENT_PARTY = updated;
-        syncPartyToServer();
+        if (hostChanged || urlChanged) {
+          renderPartyUI(); // rebuilds controls, player, attendees, queue
+        } else {
+          syncPartyToServer();
+        }
       })
     .on('postgres_changes',
       { event: 'DELETE', schema: 'public', table: 'listening_party' },
@@ -5137,6 +5440,15 @@ function startPartyRealtime() {
         if (!row || Number(row.party_id) !== partyId) return;
         loadPartyAttendees();
       })
+    .on('postgres_changes',
+      // Anyone in the room (or anywhere — we filter client-side) suggesting
+      // a track or having one played should refresh everyone's queue panel.
+      { event: '*', schema: 'public', table: 'listening_party_queue' },
+      (payload) => {
+        const row = payload.new || payload.old;
+        if (!row || Number(row.party_id) !== partyId) return;
+        loadPartyQueue();
+      })
     .subscribe();
 
   // Polling fallback for the room state (party row)
@@ -5152,6 +5464,16 @@ function startPartyRealtime() {
     CURRENT_PARTY = updated;
     syncPartyToServer();
   }, 5000);
+
+  // Attendee poll (8s) — keeps the "X listening" count honest even if
+  // Realtime drops join/leave events or the heartbeat-staleness server
+  // logic isn't perfectly tuned. Cheap one-shot RPC.
+  if (_partyAttendeesPollTimer) clearInterval(_partyAttendeesPollTimer);
+  _partyAttendeesPollTimer = setInterval(loadPartyAttendees, 8000);
+
+  // Queue poll (4s) — same idea: insurance against missed Realtime events.
+  if (_partyQueuePollTimer) clearInterval(_partyQueuePollTimer);
+  _partyQueuePollTimer = setInterval(loadPartyQueue, 4000);
 
   // SEPARATE poll for chat — short interval as a backup if Realtime drops
   // any inserts. Dedup by id in appendPartyMessageIfNew so re-fetching
@@ -5190,16 +5512,26 @@ function stopPartyRealtime() {
   if (_partyChatPollTimer) { clearInterval(_partyChatPollTimer); _partyChatPollTimer = null; }
   if (_partyDriftTimer) { clearInterval(_partyDriftTimer); _partyDriftTimer = null; }
   if (_partyHeartbeatTimer) { clearInterval(_partyHeartbeatTimer); _partyHeartbeatTimer = null; }
+  if (_partyAttendeesPollTimer) { clearInterval(_partyAttendeesPollTimer); _partyAttendeesPollTimer = null; }
+  if (_partyQueuePollTimer) { clearInterval(_partyQueuePollTimer); _partyQueuePollTimer = null; }
   if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
   _partyYTReady = false;
+  _partyAutoAdvancing = false;
 }
 
 function startPartyHeartbeat() {
   if (_partyHeartbeatTimer) clearInterval(_partyHeartbeatTimer);
+  // Send right away so the user appears in the attendee list immediately,
+  // not after a 12-second wait. Then every 12s. Tightened from 25s so the
+  // server can cleanly identify ghost attendees (anyone whose last
+  // heartbeat is > 30s old has clearly closed the tab).
+  if (CURRENT_USER && CURRENT_PARTY) {
+    try { rpc('heartbeat_listening_party', { p_token: CURRENT_USER.token, p_party_id: CURRENT_PARTY.id }); } catch {}
+  }
   _partyHeartbeatTimer = setInterval(() => {
     if (!CURRENT_USER || !CURRENT_PARTY) return;
     try { rpc('heartbeat_listening_party', { p_token: CURRENT_USER.token, p_party_id: CURRENT_PARTY.id }); } catch {}
-  }, 25000);
+  }, 12000);
 }
 
 async function loadPartyMessages() {
@@ -5234,13 +5566,264 @@ function renderPartyAttendees() {
   if (!el) return;
   const visible = _partyAttendees.slice(0, 5);
   const more = Math.max(0, _partyAttendees.length - 5);
-  el.innerHTML = visible.map(a => `
-    <div class="att" title="${escapeAttr(a.username)}">
-      ${a.avatar
-        ? `<img src="${escapeAttr(a.avatar)}" alt="${escapeAttr(a.username)}">`
-        : escapeHtml(a.username.charAt(0).toUpperCase())}
-    </div>`).join('') + (more ? `<span class="att-count">+${more}</span>` : '') +
+  const amHost = isPartyHost();
+  // When you're host, every attendee chip becomes a clickable "transfer
+  // host" target (except yourself). For non-hosts, chips are inert.
+  el.innerHTML = visible.map(a => {
+    const isMe = CURRENT_USER && a.username === CURRENT_USER.username;
+    const isCurrentHost = a.username === CURRENT_PARTY.host;
+    const clickable = amHost && !isMe && !isCurrentHost;
+    const cls = 'att' + (clickable ? ' is-clickable' : '') + (isCurrentHost ? ' is-host' : '');
+    const title = clickable
+      ? `Make ${a.username} the host`
+      : (isCurrentHost ? `${a.username} (host)` : a.username);
+    const action = clickable ? ` data-action="transfer-host" data-username="${escapeAttr(a.username)}"` : '';
+    return `
+      <div class="${cls}" title="${escapeAttr(title)}"${action}>
+        ${a.avatar
+          ? `<img src="${escapeAttr(a.avatar)}" alt="${escapeAttr(a.username)}">`
+          : escapeHtml(a.username.charAt(0).toUpperCase())}
+      </div>`;
+  }).join('') + (more ? `<span class="att-count">+${more}</span>` : '') +
     `<span class="att-count" style="margin-left: 12px;">${_partyAttendees.length} listening</span>`;
+}
+
+// =================================================================
+// QUEUE — anyone can suggest, host can play next, skip plays oldest
+// =================================================================
+async function loadPartyQueue() {
+  if (!CURRENT_PARTY) return;
+  try {
+    _partyQueue = (await rpc('get_party_queue', { p_party_id: CURRENT_PARTY.id })) || [];
+    renderPartyQueue();
+  } catch (e) {
+    // Likely the SQL migration hasn't been run yet — render the empty state
+    // with a hint so the host knows what to do.
+    _partyQueue = [];
+    renderPartyQueue();
+  }
+}
+
+// =================================================================
+// TRACK TITLE LOOKUP (oEmbed, client-side)
+// -----------------------------------------------------------------
+// YouTube and SoundCloud both expose unauthenticated, CORS-friendly
+// oEmbed endpoints that return the canonical track title (and other
+// metadata). We fetch once per unique URL, cache forever for the
+// session, and patch each queue row in-place once the title arrives.
+// No server change needed — queue items keep their raw URL on the
+// server side; titles are purely a client-side display layer.
+// =================================================================
+const _trackTitleCache = Object.create(null);     // url -> title
+const _trackTitleInflight = Object.create(null); // url -> Promise<title>
+
+function trackTitleFromCache(url) {
+  return _trackTitleCache[url] || null;
+}
+
+async function fetchTrackTitle(url) {
+  if (!url) return null;
+  if (_trackTitleCache[url]) return _trackTitleCache[url];
+  if (_trackTitleInflight[url]) return _trackTitleInflight[url];
+
+  let endpoint = null;
+  if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube-nocookie.com')) {
+    endpoint = 'https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json';
+  } else if (url.includes('soundcloud.com')) {
+    endpoint = 'https://soundcloud.com/oembed?url=' + encodeURIComponent(url) + '&format=json';
+  } else {
+    return null;
+  }
+
+  const promise = (async () => {
+    try {
+      const r = await fetch(endpoint, { mode: 'cors' });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const title = (j && j.title) ? String(j.title).trim() : null;
+      if (title) {
+        // Optionally include the channel/artist for clarity
+        const author = j.author_name ? String(j.author_name).trim() : '';
+        const display = (author && !title.toLowerCase().includes(author.toLowerCase()))
+          ? `${title} · ${author}`
+          : title;
+        _trackTitleCache[url] = display;
+        return display;
+      }
+      return null;
+    } catch {
+      // Common: oEmbed blocked by ad-blocker, age-restricted video, deleted
+      // video, or network error. Caller falls back to showing the raw URL.
+      return null;
+    } finally {
+      delete _trackTitleInflight[url];
+    }
+  })();
+  _trackTitleInflight[url] = promise;
+  return promise;
+}
+
+// Update a single queue item's visible title without re-rendering the
+// whole list. Avoids flicker when titles arrive at different times.
+function patchQueueItemTitle(queueId, newTitle) {
+  if (!newTitle) return;
+  const row = document.querySelector(`.party-queue-item[data-id="${Number(queueId)}"] .qi-link`);
+  if (!row) return;
+  row.textContent = newTitle;
+  row.classList.remove('qi-link-loading');
+}
+
+function renderPartyQueue() {
+  const list = $('partyQueueList');
+  const countBadge = $('partyQueueCount');
+  if (countBadge) countBadge.textContent = _partyQueue.length ? String(_partyQueue.length) : '';
+  if (!list) return;
+  if (_partyQueue.length === 0) {
+    list.innerHTML = `<div class="party-queue-empty">No suggestions yet — paste a YouTube or SoundCloud link below.</div>`;
+    return;
+  }
+  const amHost = isPartyHost();
+  list.innerHTML = _partyQueue.map(item => {
+    const id = Number(item.id);
+    const myItem = CURRENT_USER && item.suggested_by === CURRENT_USER.username;
+    const canRemove = myItem || amHost;
+    // Prefer (in order): server-stored title, in-memory cached title from a
+    // prior oEmbed lookup, then the raw URL as a placeholder. We mark the
+    // placeholder with a class so we can style it slightly muted while the
+    // real title is being fetched.
+    const cached = trackTitleFromCache(item.url);
+    const serverTitle = item.title && item.title.trim() ? item.title.trim() : '';
+    const label = serverTitle || cached || item.url;
+    const isPlaceholder = !serverTitle && !cached;
+    return `
+      <div class="party-queue-item" data-id="${id}">
+        <div class="qi-text">
+          <a class="qi-link${isPlaceholder ? ' qi-link-loading' : ''}" href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" title="Open original">${escapeHtml(label)}</a>
+          <div class="qi-meta">suggested by ${escapeHtml(item.suggested_by)}</div>
+        </div>
+        <div class="qi-actions">
+          ${amHost ? `<button class="qi-btn qi-play" data-action="play-queue-item" data-queue-id="${id}" title="Play this next">▶</button>` : ''}
+          ${canRemove ? `<button class="qi-btn qi-remove" data-action="remove-queue-item" data-queue-id="${id}" title="Remove"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Kick off title fetches for any items still showing a raw URL. As each
+  // resolves, we patch just that one DOM node. Fetches dedupe per URL via
+  // _trackTitleInflight, so 5 items with the same URL only hit oEmbed once.
+  _partyQueue.forEach(item => {
+    const serverTitle = item.title && item.title.trim();
+    if (serverTitle || trackTitleFromCache(item.url)) return;
+    fetchTrackTitle(item.url).then(t => {
+      if (t) patchQueueItemTitle(item.id, t);
+    });
+  });
+}
+
+async function suggestPartyTrack() {
+  const input = $('partyQueueInput');
+  if (!input || !CURRENT_USER || !CURRENT_PARTY) return;
+  const url = input.value.trim();
+  if (!url) return;
+  if (!validateUrl(url)) { alert('URL must start with https://'); return; }
+  // Light client-side filter — server-side validates again, but warning
+  // here saves a round-trip for obvious typos.
+  if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com') && !url.includes('youtube-nocookie.com')) {
+    alert('Only YouTube or SoundCloud URLs are allowed.');
+    return;
+  }
+  input.value = '';
+  // Kick off the title fetch in parallel with the RPC. By the time the
+  // realtime UPDATE delivers the new queue item to all clients (typically
+  // 200-500ms later), the title is already in cache and the row renders
+  // with the title in place rather than the raw URL.
+  fetchTrackTitle(url).catch(() => {});
+  try {
+    await rpc('suggest_party_track', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+      p_url: url,
+    });
+  } catch (e) {
+    input.value = url; // restore on failure
+    alert('Could not add to queue: ' + (e.message || 'unknown error'));
+    return;
+  }
+  loadPartyQueue();
+}
+
+async function playQueueItem(queueId) {
+  if (!isPartyHost() || !CURRENT_PARTY) return;
+  try {
+    await rpc('play_party_track', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+      p_queue_id: Number(queueId),
+    });
+  } catch (e) {
+    alert('Could not play: ' + (e.message || 'unknown error'));
+  }
+  // The party UPDATE realtime+poll will pick up the new url and rebuild
+  // the player. Refresh the queue to remove the played item.
+  loadPartyQueue();
+}
+
+async function removeQueueItem(queueId) {
+  if (!CURRENT_USER || !CURRENT_PARTY) return;
+  try {
+    await rpc('remove_party_track', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+      p_queue_id: Number(queueId),
+    });
+  } catch (e) {
+    alert('Could not remove: ' + (e.message || 'unknown error'));
+  }
+  loadPartyQueue();
+}
+
+async function skipPartyTrack() {
+  if (!isPartyHost() || !CURRENT_PARTY) return;
+  if (!_partyQueue || _partyQueue.length === 0) {
+    alert('Queue is empty — ask someone to suggest a track in the Queue tab.');
+    return;
+  }
+  // Skip = play the oldest queued item (server picks; we just call it)
+  try {
+    await rpc('skip_party_track', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+    });
+  } catch (e) {
+    alert('Could not skip: ' + (e.message || 'unknown error'));
+  }
+  loadPartyQueue();
+}
+
+async function transferPartyHost(newHost) {
+  if (!isPartyHost() || !CURRENT_PARTY) return;
+  if (!newHost) return;
+  if (!confirm(`Transfer host to ${newHost}? You'll lose host controls — they can give it back.`)) return;
+  try {
+    await rpc('transfer_party_host', {
+      p_token: CURRENT_USER.token,
+      p_party_id: CURRENT_PARTY.id,
+      p_new_host: newHost,
+    });
+  } catch (e) {
+    alert('Could not transfer host: ' + (e.message || 'unknown error'));
+    return;
+  }
+  // The listening_party UPDATE realtime+poll will pick up the new host and
+  // re-render the UI for everyone (including us, switching us out of host
+  // mode). No local state to clear here — syncPartyToServer() will be called
+  // from the UPDATE handler and re-render.
+  // Force an immediate refresh in case Realtime is laggy:
+  const updated = await loadPartyById(CURRENT_PARTY.id);
+  if (updated) {
+    CURRENT_PARTY = updated;
+    renderPartyUI();
+  }
 }
 
 async function postPartyMessage() {
@@ -5699,6 +6282,17 @@ function openModal(id) {
   closeAllModals();
   const m = $(id);
   if (m) { m.classList.add('active'); document.body.style.overflow = 'hidden'; }
+}
+// Close a single modal by id (was missing — every prior call to
+// closeModal('partyModal') silently threw ReferenceError, which is exactly
+// why the listening-party Leave button appeared to do nothing).
+function closeModal(id) {
+  const m = $(id);
+  if (!m) return;
+  m.classList.remove('active');
+  // Only release the body scroll lock if no other modal is still open
+  const anyOpen = document.querySelector('.modal-overlay.active');
+  if (!anyOpen) document.body.style.overflow = '';
 }
 function closeAllModals() {
   document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
@@ -7162,7 +7756,13 @@ document.addEventListener('click', (ev) => {
     case 'end-party': endParty(); break;
     case 'leave-party': leaveParty(); break;
     case 'party-toggle-play': togglePartyPlay(); break;
+    case 'party-skip': skipPartyTrack(); break;
+    case 'party-tab': setPartyTab(t.dataset.tab); break;
     case 'post-party-message': postPartyMessage(); break;
+    case 'suggest-party-track': suggestPartyTrack(); break;
+    case 'play-queue-item': playQueueItem(t.dataset.queueId); break;
+    case 'remove-queue-item': removeQueueItem(t.dataset.queueId); break;
+    case 'transfer-host': transferPartyHost(t.dataset.username); break;
     case 'show-login': openModal('loginModal'); break;
     case 'pick-drink': pickDrink(t.dataset.drink, t.dataset.target); break;
     case 'open-recommendation': {
