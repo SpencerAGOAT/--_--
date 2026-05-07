@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-07-4">
+<meta name="build-version" content="2026-05-07-5">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -4829,8 +4829,10 @@ function startPartyDirectoryRealtime() {
       async () => {
         await loadActiveParties();
         renderPartyBadge();
-        // If the menu is open, re-render it
-        if ($('partyModal').classList.contains('active') && !CURRENT_PARTY) {
+        // If the menu is open and the user isn't typing, refresh it so new
+        // parties appear. Guard with isPartyMenuSafeToRerender so we never
+        // wipe out a URL someone is in the middle of pasting.
+        if ($('partyModal').classList.contains('active') && !CURRENT_PARTY && isPartyMenuSafeToRerender()) {
           openPartyMenu();
         }
       })
@@ -4843,11 +4845,36 @@ function startPartyDirectoryRealtime() {
   _partyDirectoryTimer = setInterval(async () => {
     await loadActiveParties();
     renderPartyBadge();
-    // Only re-render the menu if it's open AND we're not already in a room
-    if ($('partyModal') && $('partyModal').classList.contains('active') && !CURRENT_PARTY) {
+    // Same guard — never blow away in-progress form input. The new parties
+    // are still loaded into ALL_PARTIES; they just won't surface visually
+    // until the user finishes typing (or closes/reopens the menu).
+    if ($('partyModal') && $('partyModal').classList.contains('active') && !CURRENT_PARTY && isPartyMenuSafeToRerender()) {
       openPartyMenu();
     }
   }, 4000);
+}
+
+// Decide whether it's safe to wholesale re-render the party menu. If the
+// user is focused on an input or has typed text into one, re-rendering
+// would call innerHTML='…' on the menu shell and destroy that input
+// mid-keystroke (the exact bug that made the URL/title fields appear
+// "broken" — every 4 seconds their text was vanishing).
+//
+// We err on the side of NOT re-rendering: any input with content keeps
+// the menu pinned. Once the user submits the form (start-party clears
+// the inputs) or the modal closes, normal refresh resumes.
+function isPartyMenuSafeToRerender() {
+  const root = $('partyContent');
+  if (!root) return true;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && root.contains(ae)) {
+    return false;
+  }
+  const inputs = root.querySelectorAll('input, textarea');
+  for (const inp of inputs) {
+    if (inp.value && inp.value.trim().length > 0) return false;
+  }
+  return true;
 }
 
 function stopPartyDirectoryRealtime() {
@@ -4933,6 +4960,15 @@ function renderPartyUI() {
   // Default to Chat tab on first render of a fresh room. Preserve the active
   // tab across UI re-renders triggered by host change / state updates.
   const activeTab = (_partyActiveTab === 'queue') ? 'queue' : 'chat';
+  // Save any in-progress input text BEFORE we blow away the DOM. This is
+  // why typing in the chat/queue input fields used to vanish whenever the
+  // host changed tracks — the realtime UPDATE hook called renderPartyUI(),
+  // which `innerHTML = …`-ed the modal and dropped your text along with it.
+  const savedChat = (document.getElementById('partyChatInput') || {}).value || '';
+  const savedQueueUrl = (document.getElementById('partyQueueInput') || {}).value || '';
+  // Remember which input was focused so we can restore caret position too.
+  const ae = document.activeElement;
+  const focusedId = ae && (ae.id === 'partyChatInput' || ae.id === 'partyQueueInput') ? ae.id : null;
   content.innerHTML = `
     <div class="party-modal-content">
       <div class="party-header">
@@ -4987,9 +5023,26 @@ function renderPartyUI() {
   renderPartyQueue();
 
   const chatInput = $('partyChatInput');
-  if (chatInput) chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') postPartyMessage(); });
+  if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') postPartyMessage(); });
+    if (savedChat) chatInput.value = savedChat;
+  }
   const queueInput = $('partyQueueInput');
-  if (queueInput) queueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') suggestPartyTrack(); });
+  if (queueInput) {
+    queueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') suggestPartyTrack(); });
+    if (savedQueueUrl) queueInput.value = savedQueueUrl;
+  }
+  // Restore caret to whichever field had it before, with the cursor at the
+  // end of whatever the user had been typing. Important for the case where
+  // the host plays a track mid-message — the typist shouldn't lose their
+  // place.
+  if (focusedId) {
+    const target = document.getElementById(focusedId);
+    if (target) {
+      target.focus();
+      try { target.setSelectionRange(target.value.length, target.value.length); } catch {}
+    }
+  }
 }
 
 // Switch the right-panel tab. Pure DOM toggle — no re-render needed.
