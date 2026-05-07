@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-06-1">
+<meta name="build-version" content="2026-05-06-2">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -541,6 +541,34 @@ body::after {
   cursor: not-allowed;
   /* Allow chat input and host controls behind us if they were placed here,
      but everything inside the iframe is blocked. */
+}
+/* Small "open on YouTube" escape hatch in the corner of the party player.
+   Always available — if the embed is blocked or unavailable, members can
+   still get to the video. Sits above the input-block overlay (z-index 6 vs
+   5) so non-hosts can still click it. */
+.party-yt-escape {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 6;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(212,165,116,0.35);
+  color: rgba(232,212,184,0.85);
+  border-radius: 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s ease, background 0.2s ease, color 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+.party-stage:hover .party-yt-escape { opacity: 1; }
+.party-yt-escape:hover {
+  background: rgba(20,5,5,0.85);
+  color: var(--bone);
+  border-color: var(--blood-bright);
 }
 .party-stage-empty {
   display: flex; flex-direction: column;
@@ -4374,6 +4402,10 @@ let _partyMessages = [];
 let _partyAttendees = [];
 let _partyLocalPlaying = false;
 let _partyApplyingRemote = false;
+// YT iframe load watchdog: if the player never fires onReady within ~8s,
+// _partyYTReady stays false and the watchdog swaps in an error fallback.
+let _partyYTLoadTimeout = null;
+let _partyYTReady = false;
 
 // Identify the "owner's party" — the one we surface on the homepage banner
 function findOwnerParty() {
@@ -4650,20 +4682,42 @@ function buildPartyPlayer() {
   const url = CURRENT_PARTY.url;
   const amHost = isPartyHost();
 
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+  // Helper: render a clear "can't play this here" panel with a direct link out.
+  // Used for unparseable URLs and as the timeout fallback when the iframe never
+  // loads (ad blocker, Brave shields, region lock, embedding disabled, etc.).
+  function showPartyEmbedError(headline, sub, openUrl) {
+    const linkBtn = openUrl ? `<a href="${escapeAttr(openUrl)}" target="_blank" rel="noopener noreferrer" style="margin-top:14px; display:inline-block; padding:10px 18px; background:var(--blood); color:#fff; border:1px solid var(--blood-bright); font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; text-decoration:none; border-radius:1px;">Open on YouTube ↗</a>` : '';
+    host.innerHTML = `
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; color:rgba(232,212,184,0.75); font-family:'Cormorant Garamond',serif; font-style:italic; gap:8px;">
+        <div style="font-family:'UnifrakturCook',cursive; font-size:30px; color:var(--bone); font-style:normal;">${escapeHtml(headline)}</div>
+        <div style="max-width:420px;">${escapeHtml(sub)}</div>
+        ${linkBtn}
+      </div>`;
+  }
+
+  if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube-nocookie.com')) {
     _partyProvider = 'youtube';
     const id = extractYouTubeId(url);
-    if (!id) return;
+    if (!id) {
+      showPartyEmbedError(
+        'Unrecognized YouTube URL',
+        "Couldn't read that as a video. Try a regular youtube.com/watch?v=… or youtu.be/… link.",
+        url
+      );
+      return;
+    }
     const startSec = Math.max(0, Math.floor(CURRENT_PARTY.live_position || 0));
     // YouTube IFrame API requires `origin` whenever `enablejsapi=1` is used —
     // without it, modern browsers refuse the postMessage handshake and the
     // player can render as a black/empty iframe even when the video itself is
     // valid. Pass our current origin (falls back to '*' for file:// previews).
     const ytOrigin = encodeURIComponent(window.location.origin || '*');
+    const watchUrl = `https://www.youtube.com/watch?v=${id}` + (startSec ? `&t=${startSec}` : '');
     host.innerHTML = `
       <div style="position:relative; width:100%; height:100%; flex:1; min-height:0;">
         <iframe id="partyYTFrame" style="width:100%; height:100%; border:none; display:block;" src="https://www.youtube.com/embed/${id}?enablejsapi=1&origin=${ytOrigin}&autoplay=0&controls=${amHost ? 1 : 0}&modestbranding=1&start=${startSec}&playsinline=1&rel=0&fs=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>
         ${amHost ? '' : '<div class="party-input-block" id="partyInputBlock" aria-hidden="true"></div>'}
+        <a class="party-yt-escape" href="${escapeAttr(watchUrl)}" target="_blank" rel="noopener noreferrer" title="Open on YouTube">↗</a>
       </div>`;
     if (!window.YT || !window.YT.Player) {
       if (!document.getElementById('ytApiScript')) {
@@ -4676,6 +4730,23 @@ function buildPartyPlayer() {
     } else {
       setTimeout(initPartyYTPlayer, 100);
     }
+    // Load timeout: if onReady never fires within ~8s, the iframe is being
+    // blocked (ad blocker, Brave shields, COOP/COEP headers, region/embed
+    // restrictions, deleted video). Replace the empty black box with a clear
+    // explanation + direct YouTube link instead of leaving them staring at it.
+    if (_partyYTLoadTimeout) clearTimeout(_partyYTLoadTimeout);
+    _partyYTLoadTimeout = setTimeout(() => {
+      if (_partyYTReady) return;
+      // Player never came up. Don't yank the iframe out from under a working
+      // player; only replace if it's still empty.
+      if (!_partyYTPlayer || !_partyYTPlayer.getPlayerState) {
+        showPartyEmbedError(
+          'Video not embedding',
+          'The player never finished loading. This is usually an ad blocker, Brave shields, or a video that has embedding disabled. You can still watch directly on YouTube — chat and sync stay in here.',
+          watchUrl
+        );
+      }
+    }, 8000);
   } else if (url.includes('soundcloud.com')) {
     _partyProvider = 'soundcloud';
     let scUrl = url;
@@ -4694,11 +4765,38 @@ function buildPartyPlayer() {
 function initPartyYTPlayer() {
   const frame = document.getElementById('partyYTFrame');
   if (!frame || !window.YT) return;
+  _partyYTReady = false;
   _partyYTPlayer = new YT.Player(frame, {
     events: {
       onReady: () => {
+        _partyYTReady = true;
+        if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
         syncPartyToServer();
         startPartyDriftCheck();
+      },
+      // Surface "video unavailable / embed blocked / private / removed"
+      // (YouTube fires onError with codes 2, 5, 100, 101, 150). Without this
+      // handler the iframe just sits there showing a black square forever.
+      onError: (e) => {
+        const code = e && e.data;
+        const id = extractYouTubeId((CURRENT_PARTY && CURRENT_PARTY.url) || '');
+        const watchUrl = id ? `https://www.youtube.com/watch?v=${id}` : ((CURRENT_PARTY && CURRENT_PARTY.url) || '');
+        const messages = {
+          2:   'YouTube rejected this video id as invalid.',
+          5:   "The HTML5 player couldn't play this one.",
+          100: 'This video has been removed or marked private.',
+          101: 'The owner of this video has disabled embedding.',
+          150: 'The owner of this video has disabled embedding.',
+        };
+        const sub = messages[code] || 'YouTube reported a playback error.';
+        const host = $('partyPlayer');
+        if (!host) return;
+        host.innerHTML = `
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; color:rgba(232,212,184,0.75); font-family:'Cormorant Garamond',serif; font-style:italic; gap:8px;">
+            <div style="font-family:'UnifrakturCook',cursive; font-size:30px; color:var(--bone); font-style:normal;">Can't play here</div>
+            <div style="max-width:420px;">${escapeHtml(sub)}</div>
+            ${watchUrl ? `<a href="${escapeAttr(watchUrl)}" target="_blank" rel="noopener noreferrer" style="margin-top:14px; display:inline-block; padding:10px 18px; background:var(--blood); color:#fff; border:1px solid var(--blood-bright); font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; text-decoration:none; border-radius:1px;">Open on YouTube ↗</a>` : ''}
+          </div>`;
       },
       onStateChange: (e) => {
         if (_partyApplyingRemote) return;
@@ -4922,6 +5020,8 @@ function stopPartyRealtime() {
   if (_partyChatPollTimer) { clearInterval(_partyChatPollTimer); _partyChatPollTimer = null; }
   if (_partyDriftTimer) { clearInterval(_partyDriftTimer); _partyDriftTimer = null; }
   if (_partyHeartbeatTimer) { clearInterval(_partyHeartbeatTimer); _partyHeartbeatTimer = null; }
+  if (_partyYTLoadTimeout) { clearTimeout(_partyYTLoadTimeout); _partyYTLoadTimeout = null; }
+  _partyYTReady = false;
 }
 
 function startPartyHeartbeat() {
@@ -5343,9 +5443,22 @@ function toggleDockCollapse() {
   $('musicDock').classList.toggle('collapsed');
 }
 
+// Pull a video id out of any YouTube URL we plausibly might receive.
+// Handles: watch?v=, embed/, v/, shorts/, live/, youtu.be/,
+// youtube-nocookie.com, m.youtube.com, music.youtube.com — and tolerates
+// additional path segments and query params after the id.
 function extractYouTubeId(url) {
-  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([^&?\/\s]+)/);
-  return m ? m[1] : null;
+  if (!url) return null;
+  // Try the regex (most URL shapes)
+  const m = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^&]*&)*v=|embed\/|v\/|shorts\/|live\/|e\/)|youtu\.be\/)([A-Za-z0-9_-]{6,15})/);
+  if (m) return m[1];
+  // Last-ditch: pull `?v=` out of any URL shape we missed
+  try {
+    const u = new URL(url);
+    const v = u.searchParams.get('v');
+    if (v && /^[A-Za-z0-9_-]{6,15}$/.test(v)) return v;
+  } catch {}
+  return null;
 }
 
 function renderBartenderRec() {
