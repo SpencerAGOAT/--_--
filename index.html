@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-07-5">
+<meta name="build-version" content="2026-05-07-6">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -1729,6 +1729,226 @@ body::after {
   text-shadow: 0 0 18px rgba(196,30,30,0.35), 0 1px 2px rgba(0,0,0,0.8);
 }
 
+/* ============ HOMEPAGE NOTICES ============ */
+/* Owner-pinned cards stacked under the bartender's recommendation. Two
+   variants share the same outer card frame (matching the bartender-rec
+   silhouette so the homepage feels intentional, not bolted-on):
+     - .notice-text   →  message rendered in serif italic
+     - .notice-image  →  framed photograph with optional caption underneath
+   Stack newest-first; each card has gentle vertical separation. */
+.homepage-notices {
+  max-width: 720px;
+  margin: 0 auto 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.homepage-notices:empty { display: none; }
+.notice-card {
+  position: relative;
+  padding: 26px 30px 24px;
+  background:
+    radial-gradient(ellipse at center, rgba(40,15,8,0.7) 0%, rgba(15,5,2,0.85) 100%);
+  border: 1px solid rgba(212,165,116,0.18);
+  border-radius: 1px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.4),
+    0 8px 30px rgba(0,0,0,0.6),
+    inset 0 0 30px rgba(0,0,0,0.5);
+  text-align: center;
+  animation: noticeFadeIn 0.6s ease both;
+}
+@keyframes noticeFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.notice-card::before {
+  /* Same fleur-de-lis flourish as bartender-rec for visual continuity */
+  content: '\2767';
+  position: absolute;
+  top: -10px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--shadow);
+  color: var(--gold);
+  font-size: 16px;
+  width: 28px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.5;
+  line-height: 1;
+}
+.notice-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.55);
+  margin-bottom: 10px;
+}
+.notice-text-body {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--bone);
+  font-style: italic;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.notice-image-frame {
+  display: inline-block;
+  max-width: 100%;
+  padding: 8px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(212,165,116,0.25);
+  cursor: zoom-in;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.notice-image-frame:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,165,116,0.55);
+}
+.notice-image-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  height: auto;
+  width: auto;
+}
+.notice-caption {
+  margin-top: 14px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-style: italic;
+  color: rgba(232,212,184,0.78);
+  line-height: 1.5;
+}
+.notice-meta {
+  margin-top: 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.4);
+}
+
+/* Click an image notice → opens full-size in an overlay. Click anywhere
+   outside the image (or hit Escape) to close. */
+.notice-lightbox {
+  position: fixed; inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.92);
+  padding: 5vh 5vw;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease;
+}
+.notice-lightbox.open { display: flex; }
+.notice-lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border: 1px solid rgba(212,165,116,0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+/* ============ NOTICE ADMIN PANEL ============ */
+.notice-compose {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(212,165,116,0.15);
+}
+.notice-type-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+#noticeImagePreview img {
+  max-width: 100%;
+  max-height: 240px;
+  border: 1px solid rgba(212,165,116,0.25);
+  padding: 6px;
+  background: rgba(0,0,0,0.4);
+  display: block;
+}
+.notice-list-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.65);
+  margin-bottom: 12px;
+}
+.notice-list { display: flex; flex-direction: column; gap: 10px; }
+.notice-list-empty {
+  color: rgba(232,212,184,0.45);
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+  padding: 16px 4px;
+}
+.notice-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(20,5,5,0.5);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 1px;
+}
+.notice-admin-row .nar-thumb {
+  width: 56px; height: 56px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(212,165,116,0.2);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(212,165,116,0.5);
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1px;
+  overflow: hidden;
+}
+.notice-admin-row .nar-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.notice-admin-row .nar-text {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.notice-admin-row .nar-body {
+  color: var(--bone);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 14px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notice-admin-row .nar-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.5);
+}
+.notice-admin-row .nar-actions { flex-shrink: 0; }
+.notice-admin-row .nar-delete {
+  width: 32px; height: 32px;
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.3);
+  color: rgba(232,212,184,0.7);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.notice-admin-row .nar-delete:hover {
+  background: var(--blood-dark);
+  border-color: var(--blood-bright);
+  color: var(--bone);
+}
+
+@media (max-width: 700px) {
+  .homepage-notices { padding: 0 14px; }
+  .notice-card { padding: 22px 20px 20px; }
+  .notice-text-body { font-size: 17px; }
+}
+
 /* ============ VELVET CURTAIN ENTRY ============ */
 .curtain {
   position: fixed; inset: 0;
@@ -3372,6 +3592,12 @@ body.is-admin .neon-sign .f-trigger:hover {
   </div>
 
   <div class="bartender-rec" id="bartenderRec" style="display:none;" data-action="open-recommendation"></div>
+  <!-- Owner-pinned notices: short messages or images the owner posts to the
+       homepage from the basement → Notices panel. Renders zero or more cards
+       below the bartender's recommendation. Clicking an image opens it
+       full-size in a lightbox. -->
+  <div class="homepage-notices" id="homepageNotices"></div>
+  <div class="notice-lightbox" id="noticeLightbox" data-action="close-lightbox"><img id="noticeLightboxImg" src="" alt=""></div>
   <section class="stage-section" id="stageSection">
     <div class="stage-banner">Tonight's Featured Guest</div>
     <div class="stage-platform" id="stagePlatform"></div>
@@ -3615,6 +3841,7 @@ body.is-admin .neon-sign .f-trigger:hover {
 
     <div class="basement-tabs">
       <button class="basement-tab active" data-action="basement-tab" data-tab="messages">Messages</button>
+      <button class="basement-tab" data-action="basement-tab" data-tab="notices">Notices</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="recommendation">Recommendation</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="music">Music</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="honoraries">Honoraries</button>
@@ -3634,6 +3861,46 @@ body.is-admin .neon-sign .f-trigger:hover {
           </div>
         </div>
         <div class="basement-messages" id="basementMessages"></div>
+      </div>
+
+      <div class="basement-panel" id="basementPanelNotices">
+        <p class="decree-help">
+          Pin short messages or images to the homepage. They appear under the bartender's recommendation,
+          newest first. Useful for announcements, in-jokes, photographs, or any small dispatch
+          you want everyone visiting the site to see. Each notice persists until you remove it.
+        </p>
+
+        <div class="notice-compose">
+          <div class="notice-type-toggle">
+            <button class="status-pill active" data-action="notice-type" data-type="text" id="noticeTypeTextBtn"><span class="dot"></span> Text</button>
+            <button class="status-pill" data-action="notice-type" data-type="image" id="noticeTypeImageBtn"><span class="dot"></span> Image</button>
+          </div>
+
+          <div class="form-row" id="noticeTextRow">
+            <label>Message</label>
+            <textarea id="noticeBody" maxlength="1000" placeholder="leave a note for the others..."></textarea>
+            <span class="help"><span id="noticeCharCount">1000</span> characters left</span>
+          </div>
+
+          <div class="form-row" id="noticeImageRow" style="display:none;">
+            <label>Image</label>
+            <input type="file" accept="image/*" id="noticeImageFile" class="form-input">
+            <div id="noticeImagePreview" style="margin-top:10px;"></div>
+            <span class="help">JPG/PNG/GIF/WebP. Resized to max 1200px wide automatically.</span>
+          </div>
+
+          <div class="form-row" id="noticeCaptionRow" style="display:none;">
+            <label>Caption (optional)</label>
+            <input type="text" class="form-input" id="noticeCaption" maxlength="200" placeholder="A line about this image">
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+            <button class="btn btn-primary" data-action="add-notice"><svg class="icon"><use href="#i-plus"/></svg> Post</button>
+          </div>
+        </div>
+
+        <div class="notice-list-label">Currently posted</div>
+        <div class="notice-list" id="noticeAdminList"></div>
       </div>
 
       <div class="basement-panel" id="basementPanelRecommendation">
@@ -4404,13 +4671,46 @@ async function fileToBannerBase64(file, width = 900, height = 300, quality = 0.8
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
-        // Cover scaling: scale to fill, crop excess, center
         const scale = Math.max(width / img.width, height / img.height);
         const sw = width / scale;
         const sh = height / scale;
         const sx = (img.width - sw) / 2;
         const sy = (img.height - sh) / 2;
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Notice images preserve aspect ratio (unlike avatars/banners which crop to
+// a fixed shape). Cap the longest side at maxDim and re-encode as JPEG for
+// reasonable upload size. Portrait, landscape, and square all work.
+async function fileToNoticeImageBase64(file, maxDim = 1200, quality = 0.85) {
+  if (!file.type.startsWith('image/')) throw new Error('Not an image file');
+  if (file.size > 12 * 1024 * 1024) throw new Error('Image too large (max 12MB)');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Invalid image'));
+      img.onload = () => {
+        const ratio = img.width / img.height;
+        let outW, outH;
+        if (img.width >= img.height) {
+          outW = Math.min(img.width, maxDim);
+          outH = Math.round(outW / ratio);
+        } else {
+          outH = Math.min(img.height, maxDim);
+          outW = Math.round(outH * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = outW; canvas.height = outH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, outW, outH);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.src = reader.result;
@@ -6301,6 +6601,198 @@ function renderBartenderRec() {
 }
 
 // ============================================================
+// HOMEPAGE NOTICES
+// ------------------------------------------------------------
+// Owner-only posts that appear on the homepage under the bartender's rec.
+// Two flavors per post: 'text' (a short serif italic message) and 'image'
+// (a framed photograph with optional caption). Images are stored as
+// base64 JPEG data URLs in the homepage_posts table — same pattern as
+// avatars/banners. Loaded once on init and again whenever the admin
+// adds/removes one (so the homepage updates without a refresh).
+// ============================================================
+let HOMEPAGE_NOTICES = [];
+
+async function loadHomepageNotices() {
+  try {
+    HOMEPAGE_NOTICES = (await rpc('get_homepage_notices')) || [];
+  } catch (e) {
+    // Likely the SQL migration hasn't run yet. Fail closed: empty list,
+    // no error popup. Admin will see the same empty list in the basement.
+    HOMEPAGE_NOTICES = [];
+  }
+  renderHomepageNotices();
+  renderNoticesAdminList();
+}
+
+function renderHomepageNotices() {
+  const host = $('homepageNotices');
+  if (!host) return;
+  if (!HOMEPAGE_NOTICES.length) {
+    host.innerHTML = '';
+    return;
+  }
+  // Newest first. Each card escapes its own content; image data URLs are
+  // attribute-quoted via escapeAttr so an embedded quote can't break out.
+  host.innerHTML = HOMEPAGE_NOTICES.map(n => {
+    if (n.type === 'image' && n.image) {
+      const cap = (n.caption || '').trim();
+      return `
+        <div class="notice-card notice-image" data-id="${Number(n.id)}">
+          <span class="notice-image-frame" data-action="open-lightbox" data-img="${escapeAttr(n.image)}">
+            <img src="${escapeAttr(n.image)}" alt="${escapeAttr(cap || 'notice')}" loading="lazy">
+          </span>
+          ${cap ? `<div class="notice-caption">${escapeHtml(cap)}</div>` : ''}
+        </div>`;
+    }
+    // Text variant
+    const body = (n.body || '').trim();
+    if (!body) return '';
+    return `
+      <div class="notice-card notice-text" data-id="${Number(n.id)}">
+        <div class="notice-label">a notice</div>
+        <div class="notice-text-body">${escapeHtml(body)}</div>
+      </div>`;
+  }).join('');
+}
+
+// Admin-side list inside the basement → Notices panel. Each row has a
+// delete button. Empty state explains where notices show up.
+function renderNoticesAdminList() {
+  const list = $('noticeAdminList');
+  if (!list) return;
+  if (!HOMEPAGE_NOTICES.length) {
+    list.innerHTML = `<div class="notice-list-empty">No notices posted yet. Anything you post above will appear on the homepage.</div>`;
+    return;
+  }
+  list.innerHTML = HOMEPAGE_NOTICES.map(n => {
+    const id = Number(n.id);
+    const isImage = n.type === 'image';
+    const thumb = isImage && n.image
+      ? `<img src="${escapeAttr(n.image)}" alt="">`
+      : 'TEXT';
+    const preview = isImage
+      ? (n.caption ? n.caption : '(image)')
+      : (n.body || '');
+    const date = n.created_at ? new Date(n.created_at).toLocaleString() : '';
+    return `
+      <div class="notice-admin-row" data-id="${id}">
+        <div class="nar-thumb">${thumb}</div>
+        <div class="nar-text">
+          <div class="nar-body">${escapeHtml(preview)}</div>
+          <div class="nar-meta">${escapeHtml(date)}</div>
+        </div>
+        <div class="nar-actions">
+          <button class="nar-delete" data-action="delete-notice" data-id="${id}" title="Remove this notice"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Compose form: switch between Text and Image modes. Pure DOM toggle.
+let _noticeComposeType = 'text';
+function setNoticeComposeType(t) {
+  if (t !== 'text' && t !== 'image') return;
+  _noticeComposeType = t;
+  // Toggle the pill highlights
+  const tBtn = $('noticeTypeTextBtn');
+  const iBtn = $('noticeTypeImageBtn');
+  if (tBtn) tBtn.classList.toggle('active', t === 'text');
+  if (iBtn) iBtn.classList.toggle('active', t === 'image');
+  // Show/hide the relevant rows
+  const tRow = $('noticeTextRow');
+  const iRow = $('noticeImageRow');
+  const cRow = $('noticeCaptionRow');
+  if (tRow) tRow.style.display = t === 'text' ? '' : 'none';
+  if (iRow) iRow.style.display = t === 'image' ? '' : 'none';
+  if (cRow) cRow.style.display = t === 'image' ? '' : 'none';
+}
+
+// Hold the currently-staged image data URL between file-pick and submit.
+let _stagedNoticeImage = null;
+
+async function handleNoticeImagePick(file) {
+  if (!file) return;
+  try {
+    const dataUrl = await fileToNoticeImageBase64(file, 1200, 0.85);
+    _stagedNoticeImage = dataUrl;
+    const preview = $('noticeImagePreview');
+    if (preview) preview.innerHTML = `<img src="${escapeAttr(dataUrl)}" alt="preview">`;
+  } catch (e) {
+    _stagedNoticeImage = null;
+    alert('Could not load that image: ' + (e.message || e));
+  }
+}
+
+async function addHomepageNotice() {
+  if (!CURRENT_USER || !CURRENT_USER.isAdmin) {
+    alert('Owners only.');
+    return;
+  }
+  const type = _noticeComposeType;
+  let body = null, image = null, caption = null;
+  if (type === 'text') {
+    body = ($('noticeBody').value || '').trim();
+    if (!body) { alert('Type a message first.'); return; }
+    if (body.length > 1000) { alert('Message is too long (1000 chars max).'); return; }
+  } else {
+    if (!_stagedNoticeImage) { alert('Pick an image first.'); return; }
+    image = _stagedNoticeImage;
+    caption = ($('noticeCaption').value || '').trim() || null;
+  }
+  try {
+    await rpc('add_homepage_notice', {
+      p_token: CURRENT_USER.token,
+      p_type: type,
+      p_body: body,
+      p_image: image,
+      p_caption: caption,
+    });
+  } catch (e) {
+    alert('Could not post: ' + (e.message || 'unknown error'));
+    return;
+  }
+  // Reset compose
+  if ($('noticeBody')) $('noticeBody').value = '';
+  if ($('noticeCaption')) $('noticeCaption').value = '';
+  if ($('noticeImageFile')) $('noticeImageFile').value = '';
+  if ($('noticeImagePreview')) $('noticeImagePreview').innerHTML = '';
+  _stagedNoticeImage = null;
+  setNoticeComposeType('text');
+  await loadHomepageNotices();
+}
+
+async function deleteHomepageNotice(id) {
+  if (!CURRENT_USER || !CURRENT_USER.isAdmin) return;
+  if (!confirm('Remove this notice from the homepage?')) return;
+  try {
+    await rpc('delete_homepage_notice', {
+      p_token: CURRENT_USER.token,
+      p_id: Number(id),
+    });
+  } catch (e) {
+    alert('Could not delete: ' + (e.message || 'unknown error'));
+    return;
+  }
+  await loadHomepageNotices();
+}
+
+// Lightbox: open an image full-size by its data URL or https URL
+function openNoticeLightbox(src) {
+  const lb = $('noticeLightbox');
+  const img = $('noticeLightboxImg');
+  if (!lb || !img || !src) return;
+  img.src = src;
+  lb.classList.add('open');
+}
+function closeNoticeLightbox() {
+  const lb = $('noticeLightbox');
+  if (!lb) return;
+  lb.classList.remove('open');
+  const img = $('noticeLightboxImg');
+  if (img) img.src = '';
+}
+
+// ============================================================
 // MUSIC EMBED (only soundcloud/youtube/spotify allowed)
 // ============================================================
 function buildMusicEmbed(url) {
@@ -6798,6 +7290,7 @@ function switchBasementTab(tab) {
   if (tab === 'decree') loadDecreeIntoEditor();
   if (tab === 'recommendation') loadRecommendationIntoEditor();
   if (tab === 'music') loadMusicIntoEditor();
+  if (tab === 'notices') loadHomepageNotices();
 }
 
 // ============================================================
@@ -7790,6 +8283,11 @@ document.addEventListener('click', (ev) => {
     case 'save-decree': saveDecree(); break;
     case 'rec-mode': pickRecMode(t.dataset.mode); break;
     case 'save-recommendation': saveRecommendation(); break;
+    case 'notice-type': setNoticeComposeType(t.dataset.type); break;
+    case 'add-notice': addHomepageNotice(); break;
+    case 'delete-notice': deleteHomepageNotice(t.dataset.id); break;
+    case 'open-lightbox': openNoticeLightbox(t.dataset.img || t.closest('[data-img]')?.dataset.img); break;
+    case 'close-lightbox': closeNoticeLightbox(); break;
     case 'dock-play': toggleDockPlay(); break;
     case 'dock-mute': toggleDockMute(); break;
     case 'dock-collapse': toggleDockCollapse(); break;
@@ -7876,18 +8374,37 @@ document.addEventListener('change', (ev) => {
   if (ev.target.id === 'mmFile') handleAvatarPick('mmFile', 'mmPreview', 'mm');
   if (ev.target.id === 'emBannerFile') handleBannerPick('emBannerFile', 'emBannerPreview', 'me');
   if (ev.target.id === 'mmBannerFile') handleBannerPick('mmBannerFile', 'mmBannerPreview', 'mm');
+  if (ev.target.id === 'noticeImageFile') {
+    const f = ev.target.files && ev.target.files[0];
+    handleNoticeImagePick(f);
+  }
 });
 
-// Basement char counter
+// Basement char counter — covers both the original Messages textarea and
+// the new Notices textarea. Both run off the standard 1000-char cap.
 document.addEventListener('input', (ev) => {
   if (ev.target.id === 'basementText') {
     const c = $('basementCharCount');
     if (c) c.textContent = (1000 - ev.target.value.length);
   }
+  if (ev.target.id === 'noticeBody') {
+    const c = $('noticeCharCount');
+    if (c) c.textContent = (1000 - ev.target.value.length);
+  }
 });
 
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape') closeAllModals();
+  if (ev.key === 'Escape') {
+    // Close the lightbox first if open, otherwise fall through to closing
+    // any open modal. This way Escape feels predictable: the topmost
+    // overlay closes, not whatever's underneath.
+    const lb = $('noticeLightbox');
+    if (lb && lb.classList.contains('open')) {
+      closeNoticeLightbox();
+      return;
+    }
+    closeAllModals();
+  }
   if (ev.key === 'Enter' && document.getElementById('loginModal').classList.contains('active')) {
     if (document.activeElement && (document.activeElement.id === 'loginUsername' || document.activeElement.id === 'loginPassword')) {
       doLogin();
@@ -8062,6 +8579,8 @@ async function init() {
   renderAuthBar();
   // Load admin-controlled recommendation before rendering so the card shows on first paint
   await loadRecommendation();
+  // Load any pinned homepage notices the owner has posted from the basement
+  await loadHomepageNotices();
   // Load ambient music settings so the dock appears for guests
   await loadAmbientMusic();
   // Load any active listening parties so the homepage banner + badge render
