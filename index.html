@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-08-1">
+<meta name="build-version" content="2026-05-08-2">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -126,19 +126,20 @@ body::after {
 }
 
 /* ============ REDUCED-MOTION OVERRIDE ============ */
-/* Honor the OS-level "reduce motion" preference. This both helps users with
-   vestibular issues and acts as a free perf bypass for low-end hardware
-   (laptops on battery saver, older phones). Kills the heaviest animations:
-   the eight-layer text-shadow flicker, the auto-scrolling marquee (handled
-   in JS by checking matchMedia below), embers, fog, heartbeat, and any
-   curtain/banner sweeps. The site stays fully functional, just static. */
+/* Honor OS-level "reduce motion" carefully. The previous version of this
+   rule killed everything — universal animation duration of 0.001ms plus
+   hiding embers and fog — which stripped the bar of its atmosphere for
+   anyone with the setting on (common: laptops in battery saver, Windows
+   accessibility defaults). The spec says "reduce", not "remove": gentle,
+   predictable ambient motion (slow ember drift, fog cross-fade, the
+   carousel) is fine; what genuinely affects vestibular-sensitive users
+   is rapid flicker, sudden direction changes, parallax.
+   So we now ONLY tone down the eight-layer text-shadow flicker on the
+   neon sign and the heartbeat pulse — the rest of the bar keeps moving. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-  .embers, .fog { display: none !important; }
+  .neon-sign { animation: none; opacity: 1; }
+  /* Heartbeat pulse is mild but rhythmic — kill it for sensitive users */
+  .heart-pulse, [class*="heartbeat"] { animation: none !important; }
 }
 
 /* ============ ROOM ARCHITECTURE ============ */
@@ -6601,12 +6602,13 @@ function startMarquee() {
   // Cancel any previous loop (in case renderTables re-runs)
   if (_marqueeRAF) cancelAnimationFrame(_marqueeRAF);
 
-  // Honor OS-level reduced-motion preference. The cards stay scroll/swipe-able
-  // manually — we just skip the auto-drift. Saves a per-frame scrollLeft write
-  // and a Date.now() on every animation frame for users who opted out of motion.
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
+  // Note: we used to bail here for prefers-reduced-motion, but a slow
+  // horizontal carousel doesn't actually trigger vestibular issues —
+  // it's predictable, single-axis, and gentle. Killing it stripped the
+  // homepage of its main motion identity for anyone with the OS flag
+  // on. Now we run the marquee for everyone; the few users who need
+  // less motion still get the sign flicker and heartbeat turned off
+  // via the narrowed CSS rule.
 
   // Two pause modes:
   //   - Hover/touch: pause and resume from current position when they leave
@@ -8992,13 +8994,12 @@ document.addEventListener('visibilitychange', () => {
 
 function spawnEmbers() {
   // Despite the legacy name, these are now slow gold dust motes drifting upward.
-  // CSS hides the .embers container under prefers-reduced-motion, but we also
-  // skip the DOM creation entirely so we don't waste 18 elements + their
-  // animation timers on machines that won't render them.
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
+  // We used to bail here under prefers-reduced-motion, but ember drift is
+  // about as gentle as motion gets — slow, continuous, no flashes or
+  // sudden changes. Keeping them ensures the bar always has its
+  // atmosphere regardless of the visitor's OS settings.
   const c = $('embers');
+  if (!c) return;
   for (let i = 0; i < 18; i++) {
     const e = document.createElement('div');
     e.className = 'ember';
