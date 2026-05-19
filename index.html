@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-08-2">
+<meta name="build-version" content="2026-05-08-4">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -3033,6 +3033,173 @@ body.is-admin .neon-sign .f-trigger:hover {
   color: var(--blood-bright);
   text-shadow: 0 0 20px rgba(196,30,30,0.6);
 }
+
+/* Wrapper around the modal avatar — gives badges a positioning context.
+   The avatar itself stays as a fixed-size circle with overflow:hidden;
+   anything that needs to OVERFLOW the circle (badge ribbons, awards)
+   lives in this wrapper as a sibling. */
+.modal-avatar-wrap {
+  position: relative;
+  width: 160px; height: 160px;
+  margin: 0 auto 20px;
+}
+.modal-avatar-wrap .modal-avatar {
+  margin: 0;
+}
+
+/* Profile badges — small award ribbons overlaid at the BOTTOM-LEFT of the
+   avatar, opposite the status dot at bottom-right. Multiple badges stack
+   vertically with a slight overlap so a member with several awards reads
+   as a "stacked sash" rather than a row of equal pieces. Pointer-events:
+   auto on individual badges so tooltips work; container itself is
+   transparent to clicks below them. */
+.profile-badges {
+  position: absolute;
+  bottom: -8px;
+  left: -14px;
+  display: flex;
+  flex-direction: column;
+  gap: -8px;
+  z-index: 3;
+  pointer-events: none;
+  max-width: 80px;
+}
+.profile-badge {
+  width: 64px; height: 64px;
+  pointer-events: auto;
+  cursor: help;
+  margin-bottom: -10px;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7));
+  transition: transform 0.2s ease;
+  position: relative;
+}
+.profile-badge:hover {
+  transform: scale(1.1) rotate(-2deg);
+  z-index: 10;
+}
+.profile-badge img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Custom tooltip on hover — shows the badge name and description in the
+   bar's typography rather than the default browser tooltip. */
+.profile-badge .badge-tip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 10px);
+  transform: translateY(-50%);
+  background: rgba(15,5,2,0.95);
+  border: 1px solid rgba(212,165,116,0.4);
+  padding: 8px 12px;
+  min-width: 160px;
+  max-width: 240px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  color: var(--bone);
+  line-height: 1.35;
+  text-align: left;
+  border-radius: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  white-space: normal;
+}
+.profile-badge .badge-tip .name {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.profile-badge .badge-tip .desc {
+  display: block;
+  font-style: italic;
+  color: rgba(232,212,184,0.85);
+}
+.profile-badge:hover .badge-tip { opacity: 1; }
+
+@media (max-width: 700px) {
+  /* On mobile the avatar wrapper is the same size; just tuck the badge
+     in a touch tighter so it doesn't escape the modal padding. Tooltip
+     now appears ABOVE the badge instead of below, since the badge sits
+     at the bottom of the avatar and a downward tooltip would clip off
+     the modal. */
+  .profile-badges { left: -10px; max-width: 64px; }
+  .profile-badge { width: 52px; height: 52px; margin-bottom: -8px; }
+  .profile-badge .badge-tip {
+    left: 50%;
+    top: auto;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    min-width: 140px;
+  }
+}
+
+/* Admin list row inside the basement Badges tab */
+.badge-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(20,5,5,0.5);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 1px;
+}
+.badge-admin-row .ba-thumb {
+  width: 56px; height: 56px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(212,165,116,0.2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.badge-admin-row .ba-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.badge-admin-row .ba-text {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.badge-admin-row .ba-name {
+  font-family: 'UnifrakturCook', cursive;
+  font-size: 18px;
+  color: var(--bone);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-admin-row .ba-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(212,165,116,0.55);
+}
+.badge-admin-row .ba-revoke {
+  width: 32px; height: 32px;
+  background: transparent;
+  border: 1px solid rgba(212,165,116,0.3);
+  color: rgba(232,212,184,0.7);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.badge-admin-row .ba-revoke:hover {
+  background: var(--blood-dark);
+  border-color: var(--blood-bright);
+  color: var(--bone);
+}
+
+#badgeImagePreview img {
+  max-width: 80px; max-height: 80px;
+  border: 1px solid rgba(212,165,116,0.25);
+  padding: 4px;
+  background: rgba(0,0,0,0.4);
+  display: block;
+}
 /* Bouncer silhouette fills the avatar circle */
 .bouncer-figure {
   width: 100%; height: 100%;
@@ -3800,7 +3967,10 @@ body.is-admin .neon-sign .f-trigger:hover {
     <button class="modal-close" data-action="close-modal" aria-label="Close"><svg class="icon"><use href="#i-close"/></svg></button>
     <div class="modal-header" id="pvHeader">
       <div class="modal-banner" id="pvBanner"></div>
-      <div class="modal-avatar" id="pvAvatar"></div>
+      <div class="modal-avatar-wrap">
+        <div class="modal-avatar" id="pvAvatar"></div>
+        <div class="profile-badges" id="pvBadges"></div>
+      </div>
       <div class="modal-name" id="pvName"></div>
       <div class="modal-title" id="pvTitle"></div>
       <div class="last-seen-line" id="pvLastSeen"></div>
@@ -4028,6 +4198,7 @@ body.is-admin .neon-sign .f-trigger:hover {
       <button class="basement-tab active" data-action="basement-tab" data-tab="messages">Messages</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="notices">Notices</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="animal">Animal</button>
+      <button class="basement-tab" data-action="basement-tab" data-tab="badges">Badges</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="recommendation">Recommendation</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="music">Music</button>
       <button class="basement-tab" data-action="basement-tab" data-tab="honoraries">Honoraries</button>
@@ -4125,6 +4296,46 @@ body.is-admin .neon-sign .f-trigger:hover {
         <div style="margin-top:24px; padding-top:18px; border-top:1px solid rgba(212,165,116,0.15);">
           <div class="notice-list-label">Currently on display</div>
           <div id="animalCurrent" class="notice-list-empty">Nothing set yet.</div>
+        </div>
+      </div>
+
+      <div class="basement-panel" id="basementPanelBadges">
+        <p class="decree-help">
+          Award badges to members — achievements, awards, inside jokes, or whatever
+          warrants a small ribbon next to their name. Each badge attaches to one
+          member's profile and shows as an overlay on their avatar. Same badge image
+          can be awarded to multiple members. Revoke any time.
+        </p>
+
+        <div class="form-row">
+          <label>Member</label>
+          <select class="form-select" id="badgeRecipient"><option value="">— pick a member —</option></select>
+        </div>
+
+        <div class="form-row">
+          <label>Badge name</label>
+          <input type="text" class="form-input" id="badgeName" maxlength="80" placeholder="Almost Crashed The Site Award">
+        </div>
+
+        <div class="form-row">
+          <label>Badge image</label>
+          <input type="file" accept="image/*" id="badgeImageFile" class="form-input">
+          <div id="badgeImagePreview" style="margin-top:10px;"></div>
+          <span class="help">PNG with transparency works best (ribbons / cutouts). Resized to max 256px.</span>
+        </div>
+
+        <div class="form-row">
+          <label>Description (optional)</label>
+          <textarea id="badgeDescription" maxlength="500" placeholder="The story behind this badge — shown on hover."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+          <button class="btn btn-primary" data-action="award-badge"><svg class="icon"><use href="#i-check"/></svg> Award</button>
+        </div>
+
+        <div style="margin-top:24px; padding-top:18px; border-top:1px solid rgba(212,165,116,0.15);">
+          <div class="notice-list-label">Awarded badges</div>
+          <div class="notice-list" id="badgeAdminList"></div>
         </div>
       </div>
 
@@ -4937,6 +5148,43 @@ async function fileToNoticeImageBase64(file, maxDim = 1200, quality = 0.85) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, outW, outH);
         resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Badge images are small (~256px), need to preserve transparency for ribbon
+// shapes / cutouts, and benefit from sharper edges than JPEG would give.
+// Encode as PNG. PNG can be larger than JPEG on photographs but badges are
+// usually flat color / illustrations where PNG actually compresses better.
+async function fileToBadgeImageBase64(file, maxDim = 256) {
+  if (!file.type.startsWith('image/')) throw new Error('Not an image file');
+  if (file.size > 4 * 1024 * 1024) throw new Error('Image too large (max 4MB)');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Invalid image'));
+      img.onload = () => {
+        const ratio = img.width / img.height;
+        let outW, outH;
+        if (img.width >= img.height) {
+          outW = Math.min(img.width, maxDim);
+          outH = Math.round(outW / ratio);
+        } else {
+          outH = Math.min(img.height, maxDim);
+          outW = Math.round(outH * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = outW; canvas.height = outH;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, outW, outH); // ensure alpha channel is empty
+        ctx.drawImage(img, 0, 0, outW, outH);
+        // PNG preserves the alpha channel — vital for ribbon/cutout badges
+        resolve(canvas.toDataURL('image/png'));
       };
       img.src = reader.result;
     };
@@ -7273,6 +7521,162 @@ async function clearAnimalOfTheDay() {
 }
 
 // ============================================================
+// MEMBER BADGES
+// ------------------------------------------------------------
+// Awards / achievements / inside jokes attached to specific members.
+// Owner manages from basement → Badges tab. Each badge has a name,
+// image, and optional description. Display on the profile view as a
+// small ribbon overlay at the top-left of the avatar (matches the
+// reference design). Hover any badge → custom tooltip with name +
+// description in the bar's typography.
+// ============================================================
+let ALL_BADGES = [];           // flat array, all members' badges
+let _stagedBadgeImage = null;  // base64 PNG held between file-pick and submit
+
+async function loadAllMemberBadges() {
+  try {
+    ALL_BADGES = (await rpc('get_all_member_badges')) || [];
+  } catch {
+    // Migration not yet run — silently leave the list empty
+    ALL_BADGES = [];
+  }
+  renderBadgesAdminList();
+}
+
+function getBadgesForMember(username) {
+  if (!username) return [];
+  // Newest first — feels right for a "most recent achievement" stack
+  return ALL_BADGES
+    .filter(b => b.username === username)
+    .sort((a, b) => new Date(b.awarded_at) - new Date(a.awarded_at));
+}
+
+function renderProfileBadges(username) {
+  const host = $('pvBadges');
+  if (!host) return;
+  const badges = getBadgesForMember(username);
+  if (!badges.length) {
+    host.innerHTML = '';
+    return;
+  }
+  // Cap at 4 visible so the avatar doesn't disappear under awards on
+  // over-decorated profiles. Anything beyond gets a "+N" overflow chip.
+  const visible = badges.slice(0, 4);
+  const overflow = badges.length - visible.length;
+  host.innerHTML = visible.map(b => `
+    <div class="profile-badge" data-id="${Number(b.id)}">
+      <img src="${escapeAttr(b.image)}" alt="${escapeAttr(b.name)}">
+      <div class="badge-tip">
+        <span class="name">${escapeHtml(b.name)}</span>
+        ${b.description ? `<span class="desc">${escapeHtml(b.description)}</span>` : ''}
+      </div>
+    </div>
+  `).join('') + (overflow > 0
+    ? `<div class="profile-badge" title="+${overflow} more"><div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(20,5,5,0.9); border-radius:50%; border:2px solid var(--gold); color:var(--gold); font-family:'Cinzel',serif; font-size:13px;">+${overflow}</div></div>`
+    : '');
+}
+
+// Populate the recipient dropdown in the admin form with all members
+function populateBadgeRecipientPicker() {
+  const sel = $('badgeRecipient');
+  if (!sel) return;
+  const current = sel.value;
+  const opts = ['<option value="">— pick a member —</option>'];
+  const members = (ALL_FRIENDS || []).slice().sort((a, b) =>
+    (a.username || '').localeCompare(b.username || ''));
+  members.forEach(m => {
+    opts.push(`<option value="${escapeAttr(m.username)}">${escapeHtml(m.username)}</option>`);
+  });
+  sel.innerHTML = opts.join('');
+  if (current) sel.value = current;
+}
+
+function renderBadgesAdminList() {
+  const list = $('badgeAdminList');
+  if (!list) return;
+  if (!ALL_BADGES.length) {
+    list.innerHTML = `<div class="notice-list-empty">No badges awarded yet.</div>`;
+    return;
+  }
+  list.innerHTML = ALL_BADGES.map(b => {
+    const id = Number(b.id);
+    const date = b.awarded_at ? new Date(b.awarded_at).toLocaleString() : '';
+    return `
+      <div class="badge-admin-row" data-id="${id}">
+        <div class="ba-thumb"><img src="${escapeAttr(b.image)}" alt=""></div>
+        <div class="ba-text">
+          <div class="ba-name">${escapeHtml(b.name)}</div>
+          <div class="ba-meta">awarded to ${escapeHtml(b.username)} · ${escapeHtml(date)}</div>
+        </div>
+        <button class="ba-revoke" data-action="revoke-badge" data-id="${id}" title="Revoke"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+      </div>`;
+  }).join('');
+}
+
+async function handleBadgeImagePick(file) {
+  if (!file) return;
+  try {
+    const dataUrl = await fileToBadgeImageBase64(file, 256);
+    _stagedBadgeImage = dataUrl;
+    const preview = $('badgeImagePreview');
+    if (preview) preview.innerHTML = `<img src="${escapeAttr(dataUrl)}" alt="preview">`;
+  } catch (e) {
+    _stagedBadgeImage = null;
+    alert('Could not load that image: ' + (e.message || e));
+  }
+}
+
+async function awardBadge() {
+  if (!CURRENT_USER || !CURRENT_USER.isAdmin) { alert('Owners only.'); return; }
+  const username = ($('badgeRecipient').value || '').trim();
+  const name = ($('badgeName').value || '').trim();
+  const description = ($('badgeDescription').value || '').trim() || null;
+  if (!username) { alert('Pick a member to award.'); return; }
+  if (!name) { alert('Badge name required.'); return; }
+  if (!_stagedBadgeImage) { alert('Pick a badge image first.'); return; }
+  try {
+    await rpc('award_badge', {
+      p_token: CURRENT_USER.token,
+      p_username: username,
+      p_name: name,
+      p_image: _stagedBadgeImage,
+      p_description: description,
+    });
+  } catch (e) {
+    alert('Could not award: ' + (e.message || 'unknown error'));
+    return;
+  }
+  $('badgeName').value = '';
+  $('badgeDescription').value = '';
+  $('badgeImageFile').value = '';
+  $('badgeImagePreview').innerHTML = '';
+  $('badgeRecipient').value = '';
+  _stagedBadgeImage = null;
+  await loadAllMemberBadges();
+}
+
+async function revokeBadge(id) {
+  if (!CURRENT_USER || !CURRENT_USER.isAdmin) return;
+  if (!confirm('Revoke this badge?')) return;
+  try {
+    await rpc('revoke_badge', {
+      p_token: CURRENT_USER.token,
+      p_id: Number(id),
+    });
+  } catch (e) {
+    alert('Could not revoke: ' + (e.message || 'unknown error'));
+    return;
+  }
+  await loadAllMemberBadges();
+}
+
+// Called when the basement Badges tab opens. Refreshes the list and dropdown.
+async function loadBadgesIntoEditor() {
+  populateBadgeRecipientPicker();
+  await loadAllMemberBadges();
+}
+
+// ============================================================
 // MUSIC EMBED (only soundcloud/youtube/spotify allowed)
 // ============================================================
 function buildMusicEmbed(url) {
@@ -7471,6 +7875,8 @@ function openProfileView(username) {
   }
 
   $('pvAvatar').innerHTML = avatarHtml(f);
+  // Overlay any awarded badges on the top-left of the avatar
+  renderProfileBadges(f.username);
   $('pvName').textContent = f.username;
   $('pvTitle').textContent = f.display_title || '';
   $('pvBio').textContent = f.bio || 'No bio yet.';
@@ -7772,6 +8178,7 @@ function switchBasementTab(tab) {
   if (tab === 'music') loadMusicIntoEditor();
   if (tab === 'notices') loadHomepageNotices();
   if (tab === 'animal') { loadAnimalOfTheDay().then(loadAnimalIntoEditor); }
+  if (tab === 'badges') loadBadgesIntoEditor();
 }
 
 // ============================================================
@@ -8771,6 +9178,8 @@ document.addEventListener('click', (ev) => {
     case 'close-lightbox': closeNoticeLightbox(); break;
     case 'save-animal': saveAnimalOfTheDay(); break;
     case 'clear-animal': clearAnimalOfTheDay(); break;
+    case 'award-badge': awardBadge(); break;
+    case 'revoke-badge': revokeBadge(t.dataset.id); break;
     case 'dock-play': toggleDockPlay(); break;
     case 'dock-mute': toggleDockMute(); break;
     case 'dock-collapse': toggleDockCollapse(); break;
@@ -8864,6 +9273,10 @@ document.addEventListener('change', (ev) => {
   if (ev.target.id === 'animalImageFile') {
     const f = ev.target.files && ev.target.files[0];
     handleAnimalImagePick(f);
+  }
+  if (ev.target.id === 'badgeImageFile') {
+    const f = ev.target.files && ev.target.files[0];
+    handleBadgeImagePick(f);
   }
 });
 
@@ -9073,6 +9486,8 @@ async function init() {
   await loadHomepageNotices();
   // Load the animal-of-the-day card (small bestiary panel between notices and stage)
   await loadAnimalOfTheDay();
+  // Load awarded badges so they overlay on profile views from first paint
+  await loadAllMemberBadges();
   // Load ambient music settings so the dock appears for guests
   await loadAmbientMusic();
   // Load any active listening parties so the homepage banner + badge render
