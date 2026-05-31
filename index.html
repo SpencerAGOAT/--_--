@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-31-2">
+<meta name="build-version" content="2026-05-31-3">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -5366,10 +5366,22 @@ function openStaffEntrance() {
 const WEBMAIL_URL = 'https://mail.fangtasia.wtf';
 let MY_MAILBOXES = [];
 
+let _mailKeyBound = false;
 function openMailRoom() {
   if (!CURRENT_USER) { openStaffEntrance(); return; }
   openModal('mailModal');
+  if (!_mailKeyBound) {
+    const m = $('mailModal');
+    if (m) { m.addEventListener('keydown', mailboxKeydown); _mailKeyBound = true; }
+  }
   loadMailbox();
+}
+function mailboxKeydown(e) {
+  if (e.key !== 'Enter') return;
+  const id = (e.target && e.target.id) || '';
+  if (id === 'mbPass') { e.preventDefault(); createMailbox(); }
+  else if (id === 'mbNewLocal' || id === 'mbNewPass') { e.preventDefault(); addMailbox(); }
+  else if (id.indexOf('rp-') === 0) { e.preventDefault(); resetMailbox(id.slice(3)); }
 }
 
 async function mailboxCall(action, extra) {
