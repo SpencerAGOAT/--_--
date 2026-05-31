@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-31-1">
+<meta name="build-version" content="2026-05-31-2">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -5364,6 +5364,7 @@ function openStaffEntrance() {
 // THE MAIL ROOM — members-only webmail + Migadu mailbox mgmt
 // ============================================================
 const WEBMAIL_URL = 'https://mail.fangtasia.wtf';
+let MY_MAILBOXES = [];
 
 function openMailRoom() {
   if (!CURRENT_USER) { openStaffEntrance(); return; }
@@ -5371,9 +5372,8 @@ function openMailRoom() {
   loadMailbox();
 }
 
-async function mailboxCall(action, password) {
-  const body = { action, token: CURRENT_USER.token };
-  if (password) body.password = password;
+async function mailboxCall(action, extra) {
+  const body = Object.assign({ action, token: CURRENT_USER.token }, extra || {});
   try {
     const { data, error } = await _sb.functions.invoke('mailbox', { body });
     if (error) {
@@ -5391,39 +5391,50 @@ async function loadMailbox() {
   const panel = $('mailboxPanel');
   if (panel) panel.innerHTML = '<div class="mailbox-status">Checking the mail room&hellip;</div>';
   const res = await mailboxCall('list');
-  const myAddr = (CURRENT_USER.username || '').toLowerCase() + '@fangtasia.wtf';
-  if (!res || res.error) { renderMailbox(false, myAddr, res && res.error); return; }
-  const boxes = res.mailboxes || [];
-  const exists = boxes.some(b => (b.address || '').toLowerCase() === myAddr);
-  renderMailbox(exists, myAddr);
+  if (!res || res.error) { renderMailbox([], res && res.error); return; }
+  MY_MAILBOXES = res.mailboxes || [];
+  renderMailbox(MY_MAILBOXES);
 }
 
-function renderMailbox(exists, myAddr, errText) {
+function renderMailbox(boxes, errText) {
   const panel = $('mailboxPanel');
   if (!panel) return;
-  if (exists) {
-    panel.innerHTML = `
-      <div class="mailbox-row">
-        <span class="addr">${escapeHtml(myAddr)}</span>
-        <span style="color:var(--gold);font-size:12px;">active</span>
-      </div>
-      <button class="btn btn-primary" style="width:100%;margin-bottom:12px;" data-action="mailbox-open"><svg class="icon"><use href="#i-key"/></svg> Open Webmail</button>
-      <div class="form-row">
-        <label>Reset mailbox password</label>
-        <input type="password" class="form-input" id="mailboxNewPass" placeholder="New password (8+ characters)" autocomplete="new-password">
-      </div>
-      <button class="btn btn-ghost" style="width:100%;" data-action="mailbox-reset">Reset Password</button>
-      <div class="mailbox-msg" id="mailboxMsg"></div>`;
+  const uname = (CURRENT_USER.username || '').toLowerCase();
+  let html = '';
+  if (!boxes.length) {
+    html += `<div class="mailbox-status">Claim your address to start sending and receiving mail.</div>
+      <div class="mailbox-row"><span class="addr">${escapeHtml(uname)}@fangtasia.wtf</span></div>
+      <div class="form-row"><label>Choose a password</label>
+        <input type="password" class="form-input" id="mbPass" placeholder="8+ characters" autocomplete="new-password"></div>
+      <button class="btn btn-primary" style="width:100%;" data-action="mailbox-create"><svg class="icon"><use href="#i-envelope"/></svg> Create My Mailbox</button>`;
   } else {
-    panel.innerHTML = `
-      <div class="mailbox-status">You don't have a mailbox yet. Claim <b>${escapeHtml(myAddr)}</b> to start sending and receiving mail.</div>
-      <div class="form-row">
-        <label>Choose a mailbox password</label>
-        <input type="password" class="form-input" id="mailboxNewPass" placeholder="8+ characters" autocomplete="new-password">
-      </div>
-      <button class="btn btn-primary" style="width:100%;" data-action="mailbox-create"><svg class="icon"><use href="#i-envelope"/></svg> Create My Mailbox</button>
-      <div class="mailbox-msg ${errText ? 'err' : ''}" id="mailboxMsg">${errText ? escapeHtml(errText) : ''}</div>`;
+    html += `<div class="mailbox-status">Your mailboxes &mdash; open whichever you like.</div>`;
+    boxes.forEach(b => {
+      const lp = b.local_part;
+      html += `<div class="mailbox-row">
+          <span class="addr">${escapeHtml(b.address)}</span>
+          <span style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-action="mailbox-open">Open</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-action="mailbox-reset-toggle" data-lp="${escapeAttr(lp)}">Reset</button>
+          </span>
+        </div>
+        <div id="reset-${escapeAttr(lp)}" style="display:none;margin:-6px 0 12px;">
+          <div class="form-row"><input type="password" class="form-input" id="rp-${escapeAttr(lp)}" placeholder="New password (8+)" autocomplete="new-password"></div>
+          <button class="btn btn-ghost" style="width:100%;" data-action="mailbox-reset" data-lp="${escapeAttr(lp)}">Update Password</button>
+        </div>`;
+    });
+    html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--fg-border,#341a1f);">
+        <div class="mailbox-status">Add another address</div>
+        <div class="form-row" style="display:flex;align-items:center;gap:6px;">
+          <input type="text" class="form-input" id="mbNewLocal" placeholder="name" style="flex:1;min-width:0;">
+          <span style="white-space:nowrap;">@fangtasia.wtf</span>
+        </div>
+        <div class="form-row"><input type="password" class="form-input" id="mbNewPass" placeholder="Password (8+)" autocomplete="new-password"></div>
+        <button class="btn btn-primary" style="width:100%;" data-action="mailbox-add"><svg class="icon"><use href="#i-envelope"/></svg> Create Address</button>
+      </div>`;
   }
+  html += `<div class="mailbox-msg ${errText ? 'err' : ''}" id="mailboxMsg">${errText ? escapeHtml(errText) : ''}</div>`;
+  panel.innerHTML = html;
 }
 
 function mailboxMsg(text, kind) {
@@ -5434,30 +5445,49 @@ function mailboxMsg(text, kind) {
 }
 
 async function createMailbox() {
-  const inp = $('mailboxNewPass');
+  const inp = $('mbPass');
   const pass = inp ? inp.value : '';
   if (pass.length < 8) { mailboxMsg('Password must be at least 8 characters.', 'err'); return; }
   mailboxMsg('Creating your mailbox\u2026', '');
-  const res = await mailboxCall('create', pass);
+  const res = await mailboxCall('create', { password: pass });
   if (res && res.ok) {
-    mailboxMsg('Mailbox created. Welcome to the mail room.', 'ok');
-    setTimeout(loadMailbox, 900);
+    mailboxMsg('Mailbox created! Opening webmail\u2026', 'ok');
+    setTimeout(() => { openWebmail(); loadMailbox(); }, 900);
   } else {
     mailboxMsg((res && res.error) || 'Could not create mailbox.', 'err');
   }
 }
 
-async function resetMailbox() {
-  const inp = $('mailboxNewPass');
+async function addMailbox() {
+  const lpInp = $('mbNewLocal');
+  const pInp = $('mbNewPass');
+  const lp = lpInp ? lpInp.value.trim() : '';
+  const pass = pInp ? pInp.value : '';
+  if (!lp) { mailboxMsg('Pick a name for the new address.', 'err'); return; }
+  if (pass.length < 8) { mailboxMsg('Password must be at least 8 characters.', 'err'); return; }
+  mailboxMsg('Creating address\u2026', '');
+  const res = await mailboxCall('create', { local_part: lp, password: pass });
+  if (res && res.ok) { mailboxMsg('Address created.', 'ok'); setTimeout(loadMailbox, 700); }
+  else mailboxMsg((res && res.error) || 'Could not create address.', 'err');
+}
+
+function toggleReset(lp) {
+  const el = $('reset-' + lp);
+  if (el) el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+}
+
+async function resetMailbox(lp) {
+  const inp = $('rp-' + lp);
   const pass = inp ? inp.value : '';
   if (pass.length < 8) { mailboxMsg('Password must be at least 8 characters.', 'err'); return; }
   mailboxMsg('Updating password\u2026', '');
-  const res = await mailboxCall('reset', pass);
-  if (res && res.ok) { mailboxMsg('Password updated.', 'ok'); if (inp) inp.value = ''; }
-  else { mailboxMsg((res && res.error) || 'Could not reset password.', 'err'); }
+  const res = await mailboxCall('reset', { local_part: lp, password: pass });
+  if (res && res.ok) { mailboxMsg('Password updated.', 'ok'); if (inp) inp.value = ''; toggleReset(lp); }
+  else mailboxMsg((res && res.error) || 'Could not reset password.', 'err');
 }
 
 function openWebmail() { window.open(WEBMAIL_URL, '_blank', 'noopener'); }
+
 
 function avatarHtml(friend) {
   if (friend.avatar && (friend.avatar.startsWith('data:image/') || friend.avatar.startsWith('https://'))) {
@@ -9300,7 +9330,9 @@ document.addEventListener('click', (ev) => {
     case 'staff-door': openStaffEntrance(); break;
     case 'open-mail': openMailRoom(); break;
     case 'mailbox-create': createMailbox(); break;
-    case 'mailbox-reset': resetMailbox(); break;
+    case 'mailbox-add': addMailbox(); break;
+    case 'mailbox-reset-toggle': toggleReset(t.dataset.lp); break;
+    case 'mailbox-reset': resetMailbox(t.dataset.lp); break;
     case 'mailbox-open': openWebmail(); break;
     case 'do-login': doLogin(); break;
     case 'logout': logout(); break;
