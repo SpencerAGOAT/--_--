@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-31-4">
+<meta name="build-version" content="2026-05-31-5">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -8011,7 +8011,7 @@ async function bumpProfileViewIfNeeded(username) {
     sessionStorage.setItem(key, '1');
   } catch {}
   try {
-    await rpc('bump_profile_view', { p_username: username });
+    await rpc('bump_profile_view', { p_username: username, p_fingerprint: getVisitorFingerprint() });
     const f = ALL_FRIENDS.find(x => x.username === username);
     if (f) {
       f.view_count = (Number(f.view_count) || 0) + 1;
