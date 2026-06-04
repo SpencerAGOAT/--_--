@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-06-04-2">
+<meta name="build-version" content="2026-06-04-4">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -2519,6 +2519,10 @@ body::after {
 .profile-stats .like-btn {
   cursor: pointer;
 }
+/* Guests can see the tally but can't like — present it as a stat, not a button */
+.profile-stats .like-btn.readonly { cursor: default; }
+.profile-stats .like-btn.readonly:hover .stat-icon { color: var(--blood); transform: none; }
+.profile-stats .like-btn.readonly:hover .stat-count { color: inherit; }
 .profile-stats .like-btn:hover .stat-icon {
   color: var(--blood-bright);
   transform: scale(1.15);
@@ -8032,13 +8036,14 @@ async function bumpProfileViewIfNeeded(username) {
 }
 
 async function refreshLikeStateFor(username) {
-  // Anyone can like (members and guests). Server enforces one like per
-  // unique fingerprint. Members can like each other's profiles.
+  // Like COUNT is visible to everyone. Liking (clicking) is members-only —
+  // enforced both in likeCurrentProfile() and server-side (token required),
+  // which is what stops the anonymous like-stuffing. Guests just see the tally.
   const btn = $('pvLikeBtn');
-  if (btn) btn.style.display = CURRENT_USER ? '' : 'none';
+  if (btn) { btn.style.display = ''; btn.classList.remove('readonly'); }
   const fp = getVisitorFingerprint();
   try {
-    const result = await rpc('check_profile_like', { p_username: username, p_fingerprint: fp });
+    const result = await rpc('check_profile_like', { p_username: username, p_fingerprint: fp, p_token: CURRENT_USER ? CURRENT_USER.token : null });
     if (btn && CURRENT_VIEW === username) {
       btn.classList.toggle('liked', !!(result && result.liked));
     }
@@ -8049,7 +8054,6 @@ async function likeCurrentProfile() {
   if (!CURRENT_VIEW) return;
   const btn = $('pvLikeBtn');
   if (!btn || btn.classList.contains('liked')) return;
-  if (!CURRENT_USER) return;   // likes are members-only now
   const username = btn.dataset.username || CURRENT_VIEW;
   const fp = getVisitorFingerprint();
   // Optimistic UI
@@ -8060,15 +8064,18 @@ async function likeCurrentProfile() {
   btn.classList.add('liked', 'just-liked');
   setTimeout(() => btn.classList.remove('just-liked'), 500);
   try {
-    const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp, p_token: CURRENT_USER.token });
+    const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp, p_token: CURRENT_USER ? CURRENT_USER.token : null });
     if (result && result.ok && typeof result.count === 'number') {
       if (lc && CURRENT_VIEW === username) lc.textContent = formatStatNumber(result.count);
       if (f) f.like_count = result.count;
-      if (!result.newly_liked) btn.classList.add('liked');
+    } else {
+      // Rejected (e.g. rate-limited, or no IP resolved) — undo the optimistic bump
+      if (lc) lc.textContent = formatStatNumber(Number(f && f.like_count) || 0);
+      btn.classList.remove('liked', 'just-liked');
     }
   } catch (e) {
     if (lc) lc.textContent = formatStatNumber(Number(f && f.like_count) || 0);
-    btn.classList.remove('liked');
+    btn.classList.remove('liked', 'just-liked');
   }
 }
 
