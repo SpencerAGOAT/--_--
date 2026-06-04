@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-06-04-4">
+<meta name="build-version" content="2026-06-04-5">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -3038,13 +3038,12 @@ body.is-admin .neon-sign .f-trigger:hover {
   background-position: center;
   background-color: var(--velvet);
   position: relative;
-  border-bottom: 1px solid rgba(139,0,0,0.4);
 }
 .modal-banner.active { display: block; }
 .modal-banner::after {
   content: '';
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(10,0,0,0.85) 100%);
+  background: linear-gradient(180deg, transparent 35%, var(--banner-fade, #1a0505) 100%);
 }
 .has-banner .modal-avatar {
   position: relative;
@@ -5144,7 +5143,7 @@ function clearMessages() {
 // ============================================================
 async function fileToResizedBase64(file, size = 300, quality = 0.85) {
   if (!file.type.startsWith('image/')) throw new Error('Not an image file');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Image too large (max 10MB)');
+  if (file.size > 25 * 1024 * 1024) throw new Error('Image too large (max 25MB)');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read file'));
@@ -5169,7 +5168,7 @@ async function fileToResizedBase64(file, size = 300, quality = 0.85) {
 
 async function fileToBannerBase64(file, width = 900, height = 300, quality = 0.85) {
   if (!file.type.startsWith('image/')) throw new Error('Not an image file');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Image too large (max 10MB)');
+  if (file.size > 25 * 1024 * 1024) throw new Error('Image too large (max 25MB)');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read file'));
@@ -5199,7 +5198,7 @@ async function fileToBannerBase64(file, width = 900, height = 300, quality = 0.8
 // reasonable upload size. Portrait, landscape, and square all work.
 async function fileToNoticeImageBase64(file, maxDim = 1200, quality = 0.85) {
   if (!file.type.startsWith('image/')) throw new Error('Not an image file');
-  if (file.size > 12 * 1024 * 1024) throw new Error('Image too large (max 12MB)');
+  if (file.size > 25 * 1024 * 1024) throw new Error('Image too large (max 25MB)');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read file'));
@@ -5234,7 +5233,7 @@ async function fileToNoticeImageBase64(file, maxDim = 1200, quality = 0.85) {
 // usually flat color / illustrations where PNG actually compresses better.
 async function fileToBadgeImageBase64(file, maxDim = 256) {
   if (!file.type.startsWith('image/')) throw new Error('Not an image file');
-  if (file.size > 4 * 1024 * 1024) throw new Error('Image too large (max 4MB)');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Image too large (max 15MB)');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read file'));
@@ -8093,6 +8092,7 @@ const PROFILE_THEMES = {
     border: '#2a2826',  // muted frame (replaces --blood)
     dark:   '#0a0a0a',  // raised panels (replaces --blood-dark)
     line:   'rgba(196,193,192,0.14)', // faint silver dividers/borders (replaces red lines)
+    fade:   '#050505',  // banner fades into the dark bg, not red
     glow:   'radial-gradient(ellipse at top, rgba(196,193,192,0.08), transparent 70%)'
   }
 };
@@ -8110,6 +8110,7 @@ function applyProfileTheme(username) {
     m.style.color = '';
     m.style.borderColor = '';
     m.style.removeProperty('--p-line');
+    m.style.removeProperty('--banner-fade');
     vars.forEach(p => m.style.removeProperty(p));
     if (hdr) hdr.style.background = '';
     return;
@@ -8119,6 +8120,7 @@ function applyProfileTheme(username) {
   m.style.color = t.text;
   m.style.borderColor = t.border;
   m.style.setProperty('--p-line', t.line || 'rgba(196,193,192,0.14)');
+  if (t.fade) m.style.setProperty('--banner-fade', t.fade);
   m.style.setProperty('--bone', t.text);
   m.style.setProperty('--gold', t.accent);
   m.style.setProperty('--blood', t.border);
