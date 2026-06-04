@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-05-31-5">
+<meta name="build-version" content="2026-06-04-2">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -3287,6 +3287,16 @@ body.is-admin .neon-sign .f-trigger:hover {
   border-bottom: 1px solid rgba(139,0,0,0.2);
 }
 .modal-section:last-child { border-bottom: none; }
+/* Per-profile theme: strip hardcoded blood-red borders/glows so a themed
+   profile (e.g. aspirants' silver) shows no leftover red. Scoped to the
+   profile modal, and only when a theme is active (.profile-themed). */
+#profileModal .modal.profile-themed { box-shadow: 0 0 0 1px rgba(196,193,192,0.10), 0 20px 80px rgba(0,0,0,0.8) !important; }
+#profileModal .modal.profile-themed .modal-header,
+#profileModal .modal.profile-themed .modal-banner,
+#profileModal .modal.profile-themed .modal-section { border-bottom-color: var(--p-line, rgba(196,193,192,0.14)) !important; }
+#profileModal .modal.profile-themed .music-embed,
+#profileModal .modal.profile-themed .social-link { border-color: var(--p-line, rgba(196,193,192,0.14)) !important; }
+#profileModal .modal.profile-themed .modal-avatar { box-shadow: 0 0 0 1px var(--gold), 0 0 40px rgba(196,193,192,0.25) !important; }
 .section-label {
   font-family: 'Cinzel', serif;
   font-size: 10px;
@@ -8025,7 +8035,7 @@ async function refreshLikeStateFor(username) {
   // Anyone can like (members and guests). Server enforces one like per
   // unique fingerprint. Members can like each other's profiles.
   const btn = $('pvLikeBtn');
-  if (btn) btn.style.display = '';
+  if (btn) btn.style.display = CURRENT_USER ? '' : 'none';
   const fp = getVisitorFingerprint();
   try {
     const result = await rpc('check_profile_like', { p_username: username, p_fingerprint: fp });
@@ -8039,6 +8049,7 @@ async function likeCurrentProfile() {
   if (!CURRENT_VIEW) return;
   const btn = $('pvLikeBtn');
   if (!btn || btn.classList.contains('liked')) return;
+  if (!CURRENT_USER) return;   // likes are members-only now
   const username = btn.dataset.username || CURRENT_VIEW;
   const fp = getVisitorFingerprint();
   // Optimistic UI
@@ -8049,7 +8060,7 @@ async function likeCurrentProfile() {
   btn.classList.add('liked', 'just-liked');
   setTimeout(() => btn.classList.remove('just-liked'), 500);
   try {
-    const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp });
+    const result = await rpc('like_profile', { p_username: username, p_fingerprint: fp, p_token: CURRENT_USER.token });
     if (result && result.ok && typeof result.count === 'number') {
       if (lc && CURRENT_VIEW === username) lc.textContent = formatStatNumber(result.count);
       if (f) f.like_count = result.count;
@@ -8061,6 +8072,54 @@ async function likeCurrentProfile() {
   }
 }
 
+// ============================================================
+// PER-PROFILE THEMES
+// Override the default blood-red profile look for specific members.
+// Values cascade via CSS custom properties scoped to #profileModal,
+// so descendants using var(--blood)/--gold/--bone pick them up.
+// ============================================================
+const PROFILE_THEMES = {
+  aspirants: {
+    bg:     'linear-gradient(180deg, #050505 0%, #0f0f0f 100%)',
+    text:   '#c4c1c0',  // body / --bone
+    accent: '#c4c1c0',  // labels & highlights (replaces --gold / --blood-bright)
+    border: '#2a2826',  // muted frame (replaces --blood)
+    dark:   '#0a0a0a',  // raised panels (replaces --blood-dark)
+    line:   'rgba(196,193,192,0.14)', // faint silver dividers/borders (replaces red lines)
+    glow:   'radial-gradient(ellipse at top, rgba(196,193,192,0.08), transparent 70%)'
+  }
+};
+
+function applyProfileTheme(username) {
+  const m = document.querySelector('#profileModal .modal');
+  const hdr = document.getElementById('pvHeader');
+  if (!m) return;
+  const t = PROFILE_THEMES[username];
+  const vars = ['--bone', '--gold', '--blood', '--blood-bright', '--blood-dark'];
+  if (!t) {
+    // Reset to the default red look
+    m.classList.remove('profile-themed');
+    m.style.background = '';
+    m.style.color = '';
+    m.style.borderColor = '';
+    m.style.removeProperty('--p-line');
+    vars.forEach(p => m.style.removeProperty(p));
+    if (hdr) hdr.style.background = '';
+    return;
+  }
+  m.classList.add('profile-themed');
+  m.style.background = t.bg;
+  m.style.color = t.text;
+  m.style.borderColor = t.border;
+  m.style.setProperty('--p-line', t.line || 'rgba(196,193,192,0.14)');
+  m.style.setProperty('--bone', t.text);
+  m.style.setProperty('--gold', t.accent);
+  m.style.setProperty('--blood', t.border);
+  m.style.setProperty('--blood-bright', t.accent);
+  m.style.setProperty('--blood-dark', t.dark);
+  if (hdr) hdr.style.background = t.glow;
+}
+
 function openProfileView(username) {
   const f = ALL_FRIENDS.find(x => x.username === username);
   if (!f) return;
@@ -8069,6 +8128,9 @@ function openProfileView(username) {
   // Open the modal FIRST (this calls closeAllModals which clears any prior iframe)
   // before populating, so we don't accidentally wipe the new content.
   openModal('profileModal');
+
+  // Apply (or clear) any custom per-profile theme before populating.
+  applyProfileTheme(username);
 
   // Banner
   const banner = $('pvBanner');
