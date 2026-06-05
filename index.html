@@ -8,7 +8,7 @@
      fetches the live HTML periodically and compares this value; mismatch
      triggers a soft prompt to reload. Bump this string on every deploy
      (or replace it in your build pipeline). -->
-<meta name="build-version" content="2026-06-04-5">
+<meta name="build-version" content="2026-06-04-6">
 
 <meta name="description" content="Members only.">
 <meta name="theme-color" content="#8b0000">
@@ -1102,8 +1102,6 @@ body::after {
   border: 1px solid rgba(212,165,116,0.35);
   border-radius: 4px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.8), 0 0 0 1px rgba(0,0,0,0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
   width: 240px;
   transition: width 0.3s ease, height 0.3s ease;
@@ -2967,11 +2965,19 @@ body.is-admin .neon-sign .f-trigger:hover {
 }
 
 /* ============ MODAL FRAMEWORK ============ */
+/* Perf: freeze the animated background while a modal is open so the browser
+   isn't repainting fog/motes/heartbeat behind the overlay (was the main
+   cause of profile-open lag). Also honor users who prefer reduced motion. */
+body.modal-open .fog,
+body.modal-open .embers,
+body.modal-open .ember,
+body.modal-open .heartbeat { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .fog, .embers, .ember, .heartbeat { animation: none !important; }
+}
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.92);
   display: none;
   align-items: center; justify-content: center;
   z-index: 100;
@@ -7932,7 +7938,7 @@ function buildMusicEmbed(url) {
 function openModal(id) {
   closeAllModals();
   const m = $(id);
-  if (m) { m.classList.add('active'); document.body.style.overflow = 'hidden'; }
+  if (m) { m.classList.add('active'); document.body.style.overflow = 'hidden'; document.body.classList.add('modal-open'); }
 }
 // Close a single modal by id (was missing — every prior call to
 // closeModal('partyModal') silently threw ReferenceError, which is exactly
@@ -7943,11 +7949,12 @@ function closeModal(id) {
   m.classList.remove('active');
   // Only release the body scroll lock if no other modal is still open
   const anyOpen = document.querySelector('.modal-overlay.active');
-  if (!anyOpen) document.body.style.overflow = '';
+  if (!anyOpen) { document.body.style.overflow = ''; document.body.classList.remove('modal-open'); }
 }
 function closeAllModals() {
   document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
   document.body.style.overflow = '';
+  document.body.classList.remove('modal-open');
   // Wipe out iframes entirely (just resetting src isn't reliable — SoundCloud keeps playing)
   const pvMusic = $('pvMusic');
   if (pvMusic) pvMusic.innerHTML = '';
